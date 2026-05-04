@@ -97,22 +97,6 @@ export default function SquadBuilder() {
     if (captain === playerId) setCaptain(null);
   };
 
-  const handleSetCaptain = (playerId) => {
-    if (captain === playerId) {
-      setCaptain(null);
-      setSelectedPlayers(selectedPlayers.map(p => ({
-        ...p,
-        isCaptain: false
-      })));
-    } else {
-      setCaptain(playerId);
-      setSelectedPlayers(selectedPlayers.map(p => ({
-        ...p,
-        isCaptain: p.playerId === playerId
-      })));
-    }
-  };
-
   const handleSaveSquad = async () => {
     if (selectedPlayers.length !== TOTAL) {
       alert(`You must select exactly ${TOTAL} players`);

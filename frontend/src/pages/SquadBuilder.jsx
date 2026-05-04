@@ -97,6 +97,22 @@ export default function SquadBuilder() {
     if (captain === playerId) setCaptain(null);
   };
 
+  const handleSetCaptain = (playerId) => {
+    if (captain === playerId) {
+      setCaptain(null);
+      setSelectedPlayers(selectedPlayers.map(p => ({
+        ...p,
+        isCaptain: false
+      })));
+    } else {
+      setCaptain(playerId);
+      setSelectedPlayers(selectedPlayers.map(p => ({
+        ...p,
+        isCaptain: p.playerId === playerId
+      })));
+    }
+  };
+
   const handleSaveSquad = async () => {
     if (selectedPlayers.length !== TOTAL) {
       alert(`You must select exactly ${TOTAL} players`);
@@ -384,17 +400,30 @@ export default function SquadBuilder() {
             <h3 className="font-bold text-xs mb-1">Def ({defenderCount}/6)</h3>
             <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
               {getPositionPlayers('Defender').map(p => (
-                <div key={p.playerId} className="bg-gray-50 p-1 rounded flex justify-between items-start">
+                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate text-xs">{p.playerName}</p>
                     <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                   </div>
-                  <button
-                    onClick={() => handleRemovePlayer(p.playerId)}
-                    className="text-red-500 flex-shrink-0 ml-1"
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="flex gap-0.5 ml-1">
+                    <button
+                      onClick={() => handleSetCaptain(p.playerId)}
+                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
+                        captain === p.playerId
+                          ? 'bg-yellow-400 text-yellow-900'
+                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                      }`}
+                      title="Set as captain"
+                    >
+                      C
+                    </button>
+                    <button
+                      onClick={() => handleRemovePlayer(p.playerId)}
+                      className="text-red-500 flex-shrink-0"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -404,17 +433,30 @@ export default function SquadBuilder() {
             <h3 className="font-bold text-xs mb-1">Mid ({midfielderCount}/5)</h3>
             <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
               {getPositionPlayers('Midfielder').map(p => (
-                <div key={p.playerId} className="bg-gray-50 p-1 rounded flex justify-between items-start">
+                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate text-xs">{p.playerName}</p>
                     <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                   </div>
-                  <button
-                    onClick={() => handleRemovePlayer(p.playerId)}
-                    className="text-red-500 flex-shrink-0 ml-1"
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="flex gap-0.5 ml-1">
+                    <button
+                      onClick={() => handleSetCaptain(p.playerId)}
+                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
+                        captain === p.playerId
+                          ? 'bg-yellow-400 text-yellow-900'
+                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                      }`}
+                      title="Set as captain"
+                    >
+                      C
+                    </button>
+                    <button
+                      onClick={() => handleRemovePlayer(p.playerId)}
+                      className="text-red-500 flex-shrink-0"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -424,17 +466,30 @@ export default function SquadBuilder() {
             <h3 className="font-bold text-xs mb-1">Ruc ({ruckCount}/1)</h3>
             <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
               {getPositionPlayers('Ruck').map(p => (
-                <div key={p.playerId} className="bg-gray-50 p-1 rounded flex justify-between items-start">
+                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate text-xs">{p.playerName}</p>
                     <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                   </div>
-                  <button
-                    onClick={() => handleRemovePlayer(p.playerId)}
-                    className="text-red-500 flex-shrink-0 ml-1"
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="flex gap-0.5 ml-1">
+                    <button
+                      onClick={() => handleSetCaptain(p.playerId)}
+                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
+                        captain === p.playerId
+                          ? 'bg-yellow-400 text-yellow-900'
+                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                      }`}
+                      title="Set as captain"
+                    >
+                      C
+                    </button>
+                    <button
+                      onClick={() => handleRemovePlayer(p.playerId)}
+                      className="text-red-500 flex-shrink-0"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -444,17 +499,30 @@ export default function SquadBuilder() {
             <h3 className="font-bold text-xs mb-1">Fwd ({forwardCount}/6)</h3>
             <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
               {getPositionPlayers('Forward').map(p => (
-                <div key={p.playerId} className="bg-gray-50 p-1 rounded flex justify-between items-start">
+                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate text-xs">{p.playerName}</p>
                     <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                   </div>
-                  <button
-                    onClick={() => handleRemovePlayer(p.playerId)}
-                    className="text-red-500 flex-shrink-0 ml-1"
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="flex gap-0.5 ml-1">
+                    <button
+                      onClick={() => handleSetCaptain(p.playerId)}
+                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
+                        captain === p.playerId
+                          ? 'bg-yellow-400 text-yellow-900'
+                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                      }`}
+                      title="Set as captain"
+                    >
+                      C
+                    </button>
+                    <button
+                      onClick={() => handleRemovePlayer(p.playerId)}
+                      className="text-red-500 flex-shrink-0"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

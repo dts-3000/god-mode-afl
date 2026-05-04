@@ -16,6 +16,8 @@ export default function SquadBuilder() {
   const [loading, setLoading] = useState(true);
   const [teams, setTeams] = useState([]);
   const [positions, setPositions] = useState([]);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [squadName, setSquadName] = useState('');
 
   const DEFENDERS = 6;
   const MIDFIELDERS = 5;
@@ -36,6 +38,7 @@ export default function SquadBuilder() {
       ]);
       
       setSquad(squadRes.data);
+      setSquadName(squadRes.data.teamName || '');
       setAllPlayers(playersRes.data.players || []);
       setSelectedPlayers(squadRes.data.players || []);
       
@@ -110,6 +113,19 @@ export default function SquadBuilder() {
       });
       alert('✅ Squad saved!');
       navigate('/');
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.error || err.message}`);
+    }
+  };
+
+  const handleUpdateTeamName = async () => {
+    try {
+      await axios.put(`/api/squads/${squadId}/name`, {
+        teamName: squadName
+      });
+      setSquad({ ...squad, teamName: squadName });
+      setIsEditingName(false);
+      alert('✅ Team name updated!');
     } catch (err) {
       alert(`Error: ${err.response?.data?.error || err.message}`);
     }
@@ -226,6 +242,43 @@ export default function SquadBuilder() {
 
         {/* CENTER: Field */}
         <div className="col-span-2 space-y-2">
+          {/* Team Name Card */}
+          <div className="bg-white p-2 rounded-lg shadow">
+            {isEditingName ? (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={squadName}
+                  onChange={(e) => setSquadName(e.target.value)}
+                  className="flex-1 px-2 py-1 border rounded text-sm"
+                  placeholder="Enter team name"
+                />
+                <button
+                  onClick={handleUpdateTeamName}
+                  className="px-2 py-1 bg-blue-600 text-white rounded text-xs font-bold"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditingName(false)}
+                  className="px-2 py-1 bg-gray-400 text-white rounded text-xs font-bold"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold">{squadName || 'Untitled Squad'}</h2>
+                <button
+                  onClick={() => setIsEditingName(true)}
+                  className="px-2 py-0.5 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                >
+                  Edit Name
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Stats Card */}
           <div className="bg-white p-2 rounded-lg shadow">
             <div className="flex items-center justify-between gap-2">

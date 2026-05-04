@@ -314,15 +314,29 @@ export default function SquadBuilder() {
           {/* Field Container */}
           <div className="bg-white p-2 rounded-lg shadow flex justify-center items-center min-h-96">
             <div className="relative w-full" style={{ maxWidth: '700px', aspectRatio: '9/10' }}>
-              {/* Field Background Image */}
-              <img 
-                src={`${window.location.origin}/field.png`}
-                alt="AFL Field"
-                className="absolute inset-0 w-full h-full object-cover rounded"
-                onError={(e) => {
-                  console.error('Field image failed to load');
-                }}
-              />
+              {/* Field Background - Green Oval SVG */}
+              <svg 
+                viewBox="0 0 500 600" 
+                className="absolute inset-0 w-full h-full rounded"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                {/* Field background */}
+                <rect width="500" height="600" fill="#2d5016" />
+                
+                {/* Green oval field */}
+                <ellipse cx="250" cy="300" rx="200" ry="280" fill="#4a7c2c" />
+                
+                {/* Field lines */}
+                <line x1="250" y1="20" x2="250" y2="580" stroke="#ffffff" strokeWidth="2" strokeDasharray="5,5" />
+                <line x1="50" y1="300" x2="450" y2="300" stroke="#ffffff" strokeWidth="2" strokeDasharray="5,5" />
+                
+                {/* Goals (50m lines) */}
+                <line x1="250" y1="60" x2="250" y2="100" stroke="#ffff00" strokeWidth="3" />
+                <line x1="250" y1="500" x2="250" y2="540" stroke="#ffff00" strokeWidth="3" />
+                
+                {/* Center circle */}
+                <circle cx="250" cy="300" r="40" fill="none" stroke="#ffffff" strokeWidth="2" strokeDasharray="3,3" />
+              </svg>
 
               {/* Players Container - absolutely positioned */}
               <div className="absolute inset-0 flex flex-col justify-between p-8">
@@ -373,146 +387,147 @@ export default function SquadBuilder() {
           </div>
         </div>
 
-        {/* RIGHT: Empty */}
-        <div></div>
-      </div>
-
-      {/* BOTTOM: Selected Players */}
-      <div className="bg-white p-2 rounded-lg shadow">
-        <div className="grid grid-cols-4 gap-2">
-          <div>
-            <h3 className="font-bold text-xs mb-1">Def ({defenderCount}/6)</h3>
-            <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
-              {getPositionPlayers('Defender').map(p => (
-                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-xs">{p.playerName}</p>
-                    <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
-                  </div>
-                  <div className="flex gap-0.5 ml-1">
-                    <button
-                      onClick={() => handleSetCaptain(p.playerId)}
-                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
-                        captain === p.playerId
-                          ? 'bg-yellow-400 text-yellow-900'
-                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                      }`}
-                      title="Set as captain"
-                    >
-                      C
-                    </button>
-                    <button
-                      onClick={() => handleRemovePlayer(p.playerId)}
-                      className="text-red-500 flex-shrink-0"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-xs mb-1">Mid ({midfielderCount}/5)</h3>
-            <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
-              {getPositionPlayers('Midfielder').map(p => (
-                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-xs">{p.playerName}</p>
-                    <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
-                  </div>
-                  <div className="flex gap-0.5 ml-1">
-                    <button
-                      onClick={() => handleSetCaptain(p.playerId)}
-                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
-                        captain === p.playerId
-                          ? 'bg-yellow-400 text-yellow-900'
-                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                      }`}
-                      title="Set as captain"
-                    >
-                      C
-                    </button>
-                    <button
-                      onClick={() => handleRemovePlayer(p.playerId)}
-                      className="text-red-500 flex-shrink-0"
-                    >
-                      <X size={12} />
-                    </button>
+        {/* RIGHT: Team Roster */}
+        <div className="bg-white p-3 rounded-lg shadow flex flex-col gap-3 overflow-y-auto max-h-screen">
+          <h2 className="font-bold text-sm sticky top-0 bg-white">Team Roster</h2>
+          
+          {selectedPlayers.length === 0 ? (
+            <p className="text-gray-500 text-xs text-center py-4">Select players to see roster</p>
+          ) : (
+            <div className="space-y-3">
+              {/* DEFENDERS */}
+              {getPositionPlayers('Defender').length > 0 && (
+                <div className="border-b pb-2">
+                  <h3 className="font-bold text-xs text-blue-700 mb-1">DEFENDERS ({defenderCount}/6)</h3>
+                  <div className="space-y-1">
+                    {getPositionPlayers('Defender').map(p => (
+                      <div key={p.playerId} className={`flex items-center justify-between p-1.5 rounded text-xs ${
+                        captain === p.playerId ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-gray-50 border border-gray-200'
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{p.playerName}</p>
+                          <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <div className="text-center">
+                            <p className="font-bold text-blue-600">-</p>
+                            <p className="text-gray-500 text-xs">pts</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemovePlayer(p.playerId)}
+                            className="p-0.5 text-red-500 hover:bg-red-100 rounded transition"
+                            title="Remove player"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          <div>
-            <h3 className="font-bold text-xs mb-1">Ruc ({ruckCount}/1)</h3>
-            <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
-              {getPositionPlayers('Ruck').map(p => (
-                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-xs">{p.playerName}</p>
-                    <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
-                  </div>
-                  <div className="flex gap-0.5 ml-1">
-                    <button
-                      onClick={() => handleSetCaptain(p.playerId)}
-                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
-                        captain === p.playerId
-                          ? 'bg-yellow-400 text-yellow-900'
-                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                      }`}
-                      title="Set as captain"
-                    >
-                      C
-                    </button>
-                    <button
-                      onClick={() => handleRemovePlayer(p.playerId)}
-                      className="text-red-500 flex-shrink-0"
-                    >
-                      <X size={12} />
-                    </button>
+              {/* MIDFIELDERS */}
+              {getPositionPlayers('Midfielder').length > 0 && (
+                <div className="border-b pb-2">
+                  <h3 className="font-bold text-xs text-purple-700 mb-1">MIDFIELDERS ({midfielderCount}/5)</h3>
+                  <div className="space-y-1">
+                    {getPositionPlayers('Midfielder').map(p => (
+                      <div key={p.playerId} className={`flex items-center justify-between p-1.5 rounded text-xs ${
+                        captain === p.playerId ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-gray-50 border border-gray-200'
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{p.playerName}</p>
+                          <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <div className="text-center">
+                            <p className="font-bold text-purple-600">-</p>
+                            <p className="text-gray-500 text-xs">pts</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemovePlayer(p.playerId)}
+                            className="p-0.5 text-red-500 hover:bg-red-100 rounded transition"
+                            title="Remove player"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          <div>
-            <h3 className="font-bold text-xs mb-1">Fwd ({forwardCount}/6)</h3>
-            <div className="space-y-0.5 text-xs max-h-32 overflow-y-auto">
-              {getPositionPlayers('Forward').map(p => (
-                <div key={p.playerId} className={`bg-gray-50 p-1 rounded flex justify-between items-start ${captain === p.playerId ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}`}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate text-xs">{p.playerName}</p>
-                    <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
-                  </div>
-                  <div className="flex gap-0.5 ml-1">
-                    <button
-                      onClick={() => handleSetCaptain(p.playerId)}
-                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded ${
-                        captain === p.playerId
-                          ? 'bg-yellow-400 text-yellow-900'
-                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                      }`}
-                      title="Set as captain"
-                    >
-                      C
-                    </button>
-                    <button
-                      onClick={() => handleRemovePlayer(p.playerId)}
-                      className="text-red-500 flex-shrink-0"
-                    >
-                      <X size={12} />
-                    </button>
+              {/* RUCK */}
+              {getPositionPlayers('Ruck').length > 0 && (
+                <div className="border-b pb-2">
+                  <h3 className="font-bold text-xs text-orange-700 mb-1">RUCK ({ruckCount}/1)</h3>
+                  <div className="space-y-1">
+                    {getPositionPlayers('Ruck').map(p => (
+                      <div key={p.playerId} className={`flex items-center justify-between p-1.5 rounded text-xs ${
+                        captain === p.playerId ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-gray-50 border border-gray-200'
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{p.playerName}</p>
+                          <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <div className="text-center">
+                            <p className="font-bold text-orange-600">-</p>
+                            <p className="text-gray-500 text-xs">pts</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemovePlayer(p.playerId)}
+                            className="p-0.5 text-red-500 hover:bg-red-100 rounded transition"
+                            title="Remove player"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* FORWARDS */}
+              {getPositionPlayers('Forward').length > 0 && (
+                <div>
+                  <h3 className="font-bold text-xs text-green-700 mb-1">FORWARDS ({forwardCount}/6)</h3>
+                  <div className="space-y-1">
+                    {getPositionPlayers('Forward').map(p => (
+                      <div key={p.playerId} className={`flex items-center justify-between p-1.5 rounded text-xs ${
+                        captain === p.playerId ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-gray-50 border border-gray-200'
+                      }`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{p.playerName}</p>
+                          <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <div className="text-center">
+                            <p className="font-bold text-green-600">-</p>
+                            <p className="text-gray-500 text-xs">pts</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemovePlayer(p.playerId)}
+                            className="p-0.5 text-red-500 hover:bg-red-100 rounded transition"
+                            title="Remove player"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
+
+      {/* REMOVED: Old 4-column bottom section - Now in right sidebar */}
     </div>
   );
 }

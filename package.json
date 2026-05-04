@@ -1,0 +1,17 @@
+{
+  "name": "god-mode-afl",
+  "version": "1.0.0",
+  "description": "Unlimited AFL Fantasy Game - No Database",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"cd frontend && npm run dev\" \"cd api && npm run dev\"",
+    "build": "cd frontend && npm install && npm run build",
+    "start": "node api/index.js"
+  },
+  "keywords": ["afl", "fantasy", "sports", "game"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

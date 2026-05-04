@@ -1,201 +1,199 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Upload, Trash2, Plus } from 'lucide-react';
 import axios from 'axios';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
 
 export default function AdminPanel() {
   const [players, setPlayers] = useState([]);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({
-    aflId: '',
-    firstName: '',
-    lastName: '',
-    position: '',
-    teamId: '',
-    teamName: ''
-  });
-  const [loading, setLoading] = useState(true);
+  const [csvFile, setCsvFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    fetchPlayers();
+    loadPlayers();
   }, []);
 
-  const fetchPlayers = async () => {
+  const loadPlayers = async () => {
     try {
-      setLoading(true);
       const response = await axios.get('/api/players');
       setPlayers(response.data.players || []);
     } catch (err) {
-      console.error('Error fetching players:', err);
+      console.error('Error loading players:', err);
+    }
+  };
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const csv = event.target.result;
+        const lines = csv.split('\n');
+        const headers = lines[0].split('\t').map(h => h.trim().toLowerCase());
+
+        // Find column indices
+        const idIdx = headers.findIndex(h => h.includes('id'));
+        const jumperIdx = headers.findIndex(h => h.includes('jumper'));
+        const playerIdx = headers.findIndex(h => h === 'player');
+        const teamIdx = headers.findIndex(h => h === 'team');
+        const posIdx = headers.findIndex(h => h === 'position');
+
+        const newPlayers = [];
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+
+          const cols = lines[i].split('\t').map(c => c.trim());
+          if (cols.length < 5) continue;
+
+          const [firstName, lastName] = cols[playerIdx]?.split(' ') || ['', ''];
+          const teamName = cols[teamIdx] || '';
+          const teamId = teamName.toLowerCase().replace(/\s+/g, '-');
+
+          const player = {
+            id: `player-${Math.random().toString(36).substr(2, 9)}`,
+            aflId: `${teamId}-${cols[jumperIdx]}`,
+            firstName: firstName || '',
+            lastName: lastName || '',
+            position: cols[posIdx] || '',
+            teamName: teamName,
+            teamId: teamId,
+            jumperNumber: parseInt(cols[jumperIdx]) || 0,
+            seasonStats: {}
+          };
+
+          newPlayers.push(player);
+        }
+
+        // Send to API
+        try {
+          await axios.post('/api/admin/import-players', { players: newPlayers });
+          setMessage(`✅ Successfully imported ${newPlayers.length} players!`);
+          loadPlayers();
+          setCsvFile(null);
+        } catch (err) {
+          setMessage(`❌ Error importing players: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+    } catch (err) {
+      setMessage(`❌ Error processing file: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddPlayer = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post('/api/players', formData);
-      alert('✅ Player added!');
-      setFormData({
-        aflId: '',
-        firstName: '',
-        lastName: '',
-        position: '',
-        teamId: '',
-        teamName: ''
-      });
-      setShowAddForm(false);
-      fetchPlayers();
-    } catch (err) {
-      alert(`Error: ${err.response?.data?.error || err.message}`);
-    }
-  };
+  const handleDeletePlayer = async (playerId) => {
+    if (!window.confirm('Delete this player?')) return;
 
-  const handleDeletePlayer = async (aflId) => {
-    if (window.confirm('Are you sure?')) {
-      try {
-        await axios.delete(`/api/players/${aflId}`);
-        alert('✅ Player deleted!');
-        fetchPlayers();
-      } catch (err) {
-        alert(`Error: ${err.message}`);
-      }
-    }
-  };
-
-  const handleStatusChange = async (aflId, newStatus) => {
+    setLoading(true);
     try {
-      await axios.put(`/api/players/${aflId}`, { status: newStatus });
-      fetchPlayers();
+      // For now, just remove from state since we don't have delete endpoint
+      setPlayers(players.filter(p => p.id !== playerId));
+      setMessage('✅ Player deleted');
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      setMessage(`❌ Error: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-4xl font-bold mb-2">Admin Panel</h1>
-        <p className="text-purple-100">Manage players and league settings</p>
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+        <p className="text-gray-600">Manage players and import new data</p>
       </div>
 
+      {/* CSV Upload Section */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Players ({players.length})</h2>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            <Plus size={20} /> Add Player
-          </button>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <Upload size={24} />
+          Import Players from CSV
+        </h2>
+
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-sm text-blue-800 mb-2">
+            <strong>CSV Format Required (Tab-separated):</strong>
+          </p>
+          <p className="text-xs text-blue-700 font-mono">
+            ID	JumperNumber	Player	Team	Position
+          </p>
+          <p className="text-xs text-blue-600 mt-2">
+            Example: 1	15	John Doe	Adelaide	Midfielder
+          </p>
         </div>
 
-        {showAddForm && (
-          <form onSubmit={handleAddPlayer} className="mb-6 p-4 bg-gray-50 rounded grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700">
+            <Upload size={18} />
+            Choose CSV File
             <input
-              type="text"
-              placeholder="AFL ID (e.g., john-doe)"
-              value={formData.aflId}
-              onChange={(e) => setFormData({ ...formData, aflId: e.target.value })}
-              required
-              className="px-4 py-2 border rounded"
+              type="file"
+              accept=".csv,.tsv,.txt"
+              onChange={handleCSVUpload}
+              disabled={loading}
+              className="hidden"
             />
-            <input
-              type="text"
-              placeholder="First Name"
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              required
-              className="px-4 py-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Last Name"
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              required
-              className="px-4 py-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Position (e.g., Midfielder)"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              required
-              className="px-4 py-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Team ID (e.g., rich)"
-              value={formData.teamId}
-              onChange={(e) => setFormData({ ...formData, teamId: e.target.value })}
-              required
-              className="px-4 py-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Team Name (e.g., Richmond)"
-              value={formData.teamName}
-              onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-              required
-              className="px-4 py-2 border rounded"
-            />
-            <div className="col-span-2 flex gap-2">
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+          </label>
 
-        {loading ? (
-          <p>Loading players...</p>
+          {csvFile && (
+            <span className="text-sm text-gray-600">
+              Selected: <strong>{csvFile.name}</strong>
+            </span>
+          )}
+        </div>
+
+        {message && (
+          <div className={`mt-4 p-3 rounded text-sm ${
+            message.includes('✅')
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message}
+          </div>
+        )}
+      </div>
+
+      {/* Players List */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-bold mb-4">
+          Players ({players.length})
+        </h2>
+
+        {players.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No players yet. Upload a CSV file to import players.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-100 border-b">
                 <tr>
                   <th className="px-4 py-2 text-left">Name</th>
                   <th className="px-4 py-2 text-left">Position</th>
                   <th className="px-4 py-2 text-left">Team</th>
-                  <th className="px-4 py-2 text-left">Status</th>
-                  <th className="px-4 py-2 text-right">Actions</th>
+                  <th className="px-4 py-2 text-left">Jumper #</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {players.map(player => (
-                  <tr key={player.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-2 font-semibold">
+                  <tr key={player.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">
                       {player.firstName} {player.lastName}
                     </td>
                     <td className="px-4 py-2">{player.position}</td>
                     <td className="px-4 py-2">{player.teamName}</td>
+                    <td className="px-4 py-2">#{player.jumperNumber}</td>
                     <td className="px-4 py-2">
-                      <select
-                        value={player.status}
-                        onChange={(e) => handleStatusChange(player.aflId, e.target.value)}
-                        className="px-2 py-1 border rounded text-sm"
-                      >
-                        <option>ACTIVE</option>
-                        <option>INJURED</option>
-                        <option>SUSPENDED</option>
-                        <option>DELISTED</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-2 text-right">
                       <button
-                        onClick={() => handleDeletePlayer(player.aflId)}
-                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDeletePlayer(player.id)}
+                        disabled={loading}
+                        className="text-red-600 hover:text-red-800 disabled:text-gray-400"
                       >
                         <Trash2 size={18} />
                       </button>

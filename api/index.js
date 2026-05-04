@@ -132,6 +132,33 @@ app.get('/api/players/:aflId', (req, res) => {
   res.json(player);
 });
 
+// ============================================
+// ADMIN - PLAYER IMPORT (CSV)
+// ============================================
+
+app.post('/api/admin/import-players', (req, res) => {
+  const { players } = req.body;
+
+  if (!Array.isArray(players)) {
+    return res.status(400).json({ error: 'Players must be an array' });
+  }
+
+  // Add or replace players
+  for (const newPlayer of players) {
+    const existing = DATABASE.players.findIndex(p => p.aflId === newPlayer.aflId);
+    if (existing >= 0) {
+      // Update existing
+      DATABASE.players[existing] = { ...DATABASE.players[existing], ...newPlayer };
+    } else {
+      // Add new
+      DATABASE.players.push(newPlayer);
+    }
+  }
+
+  saveData();
+  res.json({ message: `Imported ${players.length} players`, count: DATABASE.players.length });
+});
+
 app.post('/api/players', (req, res) => {
   const { aflId, firstName, lastName, position, teamId, teamName } = req.body;
 

@@ -20,7 +20,7 @@ export default function Header() {
             <BarChart3 size={20} />
             Leaderboard
           </Link>
-          <Link to="/admin" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+          <Link to="/admin/login" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <Settings size={20} />
             Admin
           </Link>

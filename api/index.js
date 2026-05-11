@@ -332,7 +332,7 @@ app.post('/api/scores/calculate', (req, res) => {
 
 app.get('/api/matches', async (req, res) => {
   try {
-    const response = await fetch('https://api.squiggle.com.au/?q=games;year=2025');
+    const response = await fetch('https://api.squiggle.com.au/?q=games;year=2026');
     const data = await response.json();
     
     if (!data.games) {

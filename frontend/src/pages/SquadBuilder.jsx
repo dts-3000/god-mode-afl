@@ -409,8 +409,19 @@ export default function SquadBuilder() {
                           <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                         </div>
                         <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleSetCaptain(p.playerId)}
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold transition ${
+                              captain === p.playerId
+                                ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                                : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                            }`}
+                            title="Set as captain (2x points)"
+                          >
+                            C
+                          </button>
                           <div className="text-center">
-                            <p className="font-bold text-blue-600">-</p>
+                            <p className="font-bold text-blue-600">{p.playerScore || '-'}</p>
                             <p className="text-gray-500 text-xs">pts</p>
                           </div>
                           <button
@@ -441,8 +452,19 @@ export default function SquadBuilder() {
                           <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                         </div>
                         <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleSetCaptain(p.playerId)}
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold transition ${
+                              captain === p.playerId
+                                ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                                : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                            }`}
+                            title="Set as captain (2x points)"
+                          >
+                            C
+                          </button>
                           <div className="text-center">
-                            <p className="font-bold text-purple-600">-</p>
+                            <p className="font-bold text-purple-600">{p.playerScore || '-'}</p>
                             <p className="text-gray-500 text-xs">pts</p>
                           </div>
                           <button
@@ -473,8 +495,19 @@ export default function SquadBuilder() {
                           <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                         </div>
                         <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleSetCaptain(p.playerId)}
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold transition ${
+                              captain === p.playerId
+                                ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                                : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                            }`}
+                            title="Set as captain (2x points)"
+                          >
+                            C
+                          </button>
                           <div className="text-center">
-                            <p className="font-bold text-orange-600">-</p>
+                            <p className="font-bold text-orange-600">{p.playerScore || '-'}</p>
                             <p className="text-gray-500 text-xs">pts</p>
                           </div>
                           <button
@@ -505,8 +538,19 @@ export default function SquadBuilder() {
                           <p className="text-gray-600 text-xs truncate">{p.teamName}</p>
                         </div>
                         <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleSetCaptain(p.playerId)}
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold transition ${
+                              captain === p.playerId
+                                ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                                : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                            }`}
+                            title="Set as captain (2x points)"
+                          >
+                            C
+                          </button>
                           <div className="text-center">
-                            <p className="font-bold text-green-600">-</p>
+                            <p className="font-bold text-green-600">{p.playerScore || '-'}</p>
                             <p className="text-gray-500 text-xs">pts</p>
                           </div>
                           <button

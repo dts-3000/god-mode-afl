@@ -5,6 +5,7 @@ import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import SquadBuilder from './pages/SquadBuilder';
 import Leaderboard from './pages/Leaderboard';
+import MatchStats from './pages/MatchStats';
 import AdminPanel from './pages/AdminPanel';
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/squad/:squadId" element={<SquadBuilder />} />
+            <Route path="/match-stats" element={<MatchStats />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" />} />

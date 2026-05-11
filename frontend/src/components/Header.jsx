@@ -16,11 +16,15 @@ export default function Header() {
             <Home size={20} />
             Dashboard
           </Link>
+          <Link to="/match-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <BarChart3 size={20} />
+            Match Stats
+          </Link>
           <Link to="/leaderboard" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
             Leaderboard
           </Link>
-          <Link to="/admin/login" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+          <Link to="/admin" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <Settings size={20} />
             Admin
           </Link>

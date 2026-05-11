@@ -16,6 +16,10 @@ export default function Header() {
             <Home size={20} />
             Dashboard
           </Link>
+          <Link to="/load-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <BarChart3 size={20} />
+            Load Stats
+          </Link>
           <Link to="/match-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
             Match Stats

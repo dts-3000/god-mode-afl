@@ -327,6 +327,71 @@ app.post('/api/scores/calculate', (req, res) => {
 });
 
 // ============================================
+// SQUIGGLE API INTEGRATION
+// ============================================
+
+app.get('/api/matches', async (req, res) => {
+  try {
+    const response = await fetch('https://api.squiggle.com.au/?q=games;year=2025');
+    const data = await response.json();
+    
+    if (!data.games) {
+      return res.json({ matches: [] });
+    }
+
+    // Format matches for display
+    const matches = data.games.map(game => ({
+      id: game.id,
+      round: game.round,
+      homeTeam: game.hteam,
+      awayTeam: game.ateam,
+      date: game.date,
+      is_final: game.is_final,
+      status: game.is_final ? 'FINISHED' : 'LIVE'
+    }));
+
+    res.json({ matches });
+  } catch (err) {
+    console.error('Error fetching matches:', err);
+    res.status(500).json({ error: 'Failed to fetch matches' });
+  }
+});
+
+app.get('/api/player-stats/:matchId/:teamId', async (req, res) => {
+  try {
+    const { matchId, teamId } = req.params;
+    
+    const response = await fetch(`https://api.squiggle.com.au/?q=playerStats;gameId=${matchId};team=${teamId}`);
+    const data = await response.json();
+    
+    if (!data.playerStats) {
+      return res.json({ stats: [] });
+    }
+
+    // Format player stats
+    const stats = data.playerStats.map(ps => ({
+      playerName: ps.player,
+      jumperNumber: ps.number,
+      handballs: ps.handballs || 0,
+      kicks: ps.kicks || 0,
+      marks: ps.marks || 0,
+      tackles: ps.tackles || 0,
+      goals: ps.goals || 0,
+      behinds: ps.behinds || 0,
+      hitOuts: ps.hitouts || 0,
+      clearances: ps.clearances || 0,
+      inside50s: ps.inside50s || 0,
+      goalAssists: ps.goalassists || 0
+    }));
+
+    res.json({ stats });
+  } catch (err) {
+    console.error('Error fetching player stats:', err);
+    res.status(500).json({ error: 'Failed to fetch player stats' });
+  }
+});
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 

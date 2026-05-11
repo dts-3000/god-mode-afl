@@ -108,12 +108,19 @@ export default function SquadBuilder() {
     }
 
     try {
+      // Make sure captain flag is set
+      const playersWithCaptain = selectedPlayers.map(p => ({
+        ...p,
+        isCaptain: p.playerId === captain
+      }));
+
       await axios.put(`/api/squads/${squadId}/players`, {
-        players: selectedPlayers
+        players: playersWithCaptain
       });
       alert('✅ Squad saved!');
       navigate('/');
     } catch (err) {
+      console.error('Save error:', err);
       alert(`Error: ${err.response?.data?.error || err.message}`);
     }
   };

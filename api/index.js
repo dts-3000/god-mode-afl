@@ -215,6 +215,9 @@ app.post('/api/squads', (req, res) => {
 
 app.put('/api/squads/:squadId/players', (req, res) => {
   const { players } = req.body;
+  const { squadId } = req.params;
+
+  console.log('Updating squad:', squadId, 'with', players?.length, 'players');
 
   if (!Array.isArray(players) || players.length !== 18) {
     return res.status(400).json({ error: 'Must have exactly 18 players (6 Def, 5 Mid, 1 Ruck, 6 Fwd)' });
@@ -225,8 +228,9 @@ app.put('/api/squads/:squadId/players', (req, res) => {
     return res.status(400).json({ error: 'Must have exactly 1 captain' });
   }
 
-  const squad = DATABASE.squads.find(s => s.id === req.params.squadId);
+  const squad = DATABASE.squads.find(s => s.id === squadId);
   if (!squad) {
+    console.error('Squad not found. Available squads:', DATABASE.squads.map(s => s.id));
     return res.status(404).json({ error: 'Squad not found' });
   }
 

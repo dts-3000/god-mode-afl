@@ -90,12 +90,25 @@ export default function MatchStats() {
     }
 
     try {
-      // Update each player with their stats
+      // Update each player with their stats and calculated scores
       const updatedPlayers = selectedSquad.players.map(p => ({
         ...p,
         playerScore: calculatePlayerPoints(p.playerId),
-        matchStats: playerStats[p.playerId]
+        matchStats: playerStats[p.playerId],
+        isCaptain: p.isCaptain || false
       }));
+
+      // Make sure we have exactly 18 players with 1 captain
+      const captainCount = updatedPlayers.filter(p => p.isCaptain).length;
+      if (captainCount !== 1) {
+        alert('Error: Must have exactly 1 captain');
+        return;
+      }
+
+      if (updatedPlayers.length !== 18) {
+        alert('Error: Must have exactly 18 players');
+        return;
+      }
 
       await axios.put(`/api/squads/${selectedSquad.id}/players`, {
         players: updatedPlayers
@@ -104,7 +117,8 @@ export default function MatchStats() {
       alert('✅ Match stats saved!');
       navigate('/');
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      console.error('Error saving stats:', err);
+      alert(`Error: ${err.response?.data?.error || err.message}`);
     }
   };
 

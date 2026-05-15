@@ -24,17 +24,9 @@ export default function LiveScores() {
     try {
       setConnectionStatus('Connecting to live feed...');
       
-      // NOTE: For production, the Event API should be proxied through the backend
-      // to properly set the User-Agent header and respect Squiggle's terms of service.
-      // For now, this connects directly, but ideally:
-      // 1. Backend should establish SSE connection to Squiggle
-      // 2. Backend broadcasts game updates to clients via WebSocket or Server-Sent Events
-      // 3. Clients connect to backend, not Squiggle directly
-      
-      // IMPORTANT: Event API should be a persistent connection per game day
-      // NOT used for one-off queries. This is correct usage.
-      
-      const eventSource = new EventSource('https://sse.squiggle.com.au/games');
+      // Connect to backend Event API proxy (which proxies Squiggle)
+      // This avoids CORS issues and properly sets User-Agent headers
+      const eventSource = new EventSource('/api/live-games');
       eventSourceRef.current = eventSource;
 
       // Handle initial games list

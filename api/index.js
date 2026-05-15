@@ -404,6 +404,56 @@ app.get('/api/player-stats/:matchId/:teamId', async (req, res) => {
 });
 
 // ============================================
+// EVENT API PROXY (For Live Scores)
+// ============================================
+
+// Store active SSE connections per user
+const eventConnections = new Map();
+
+app.get('/api/live-games', (req, res) => {
+  // Set up SSE response
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  const clientId = Math.random().toString(36).substr(2, 9);
+  eventConnections.set(clientId, res);
+
+  // Connect to Squiggle Event API
+  const squiggleSSE = new EventSource('https://sse.squiggle.com.au/games', {
+    headers: {
+      'User-Agent': SQUIGGLE_USER_AGENT
+    }
+  });
+
+  const forwardEvent = (eventName) => {
+    squiggleSSE.addEventListener(eventName, (event) => {
+      // Forward the event to the client
+      res.write(`event: ${eventName}\n`);
+      res.write(`data: ${event.data}\n\n`);
+    });
+  };
+
+  // Forward all relevant events
+  forwardEvent('games');
+  forwardEvent('addGame');
+  forwardEvent('updateGame');
+  forwardEvent('removeGame');
+
+  squiggleSSE.onerror = (err) => {
+    console.error('Squiggle SSE error:', err);
+    res.end();
+  };
+
+  // Handle client disconnect
+  req.on('close', () => {
+    squiggleSSE.close();
+    eventConnections.delete(clientId);
+  });
+});
+
+// ============================================
 // HEALTH CHECK
 // ============================================
 

@@ -32,8 +32,8 @@ export default function LoadStats() {
     setSelectedMatch(match);
     setLoading(true);
     try {
-      // Just fetch and display the raw data
-      const response = await axios.get(`/api/player-stats/${match.id}/adelaide`);
+      // Fetch stats for the home team first
+      const response = await axios.get(`/api/player-stats/${match.id}/${match.homeTeam.toLowerCase()}`);
       setMatchDetails(response.data);
     } catch (err) {
       console.error('Error loading match details:', err);

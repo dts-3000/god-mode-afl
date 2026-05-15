@@ -22,19 +22,18 @@ export default function LoadStats() {
   const loadMatches = async () => {
     setLoading(true);
     try {
-      // Fetch directly from Squiggle API (browser request, not backend)
-      const response = await fetch('https://api.squiggle.com.au/?q=games;year=2026');
-      const data = await response.json();
+      // Use our backend API which can access Squiggle
+      const response = await axios.get('/api/matches');
+      const matches = response.data.matches || [];
       
-      if (data.games) {
-        const recentMatches = data.games
-          .filter(m => m.round >= 1)
-          .sort((a, b) => b.round - a.round);
-        setMatches(recentMatches);
+      if (matches.length > 0) {
+        setMatches(matches);
+      } else {
+        alert('No matches found for 2026 season');
       }
     } catch (err) {
       console.error('Error loading matches:', err);
-      alert('Error loading matches from Squiggle. Check console.');
+      alert('Error loading matches. Make sure backend is running.');
     } finally {
       setLoading(false);
     }
@@ -66,14 +65,13 @@ export default function LoadStats() {
 
       const teamId = firstPlayer.teamId;
 
-      // Fetch stats directly from Squiggle API (browser request)
-      const response = await fetch(`https://api.squiggle.com.au/?q=playerStats;gameId=${selectedMatch.id};team=${teamId}`);
-      const data = await response.json();
-      const stats = data.playerStats || [];
+      // Fetch stats from our backend API (which proxies Squiggle)
+      const response = await axios.get(`/api/player-stats/${selectedMatch.id}/${teamId}`);
+      const stats = response.data.stats || [];
 
       // Match stats to squad players by jumper number
       const matchedStats = selectedSquad.players.map(squadPlayer => {
-        const apiStat = stats.find(s => s.number === squadPlayer.jumperNumber);
+        const apiStat = stats.find(s => s.jumperNumber === squadPlayer.jumperNumber);
         return {
           ...squadPlayer,
           matchStats: apiStat || {
@@ -96,7 +94,7 @@ export default function LoadStats() {
       alert('✅ Stats loaded from Squiggle API!');
     } catch (err) {
       console.error('Error loading stats:', err);
-      alert(`Error: ${err.message}`);
+      alert(`Error: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoadingStats(false);
     }

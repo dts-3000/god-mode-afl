@@ -17,6 +17,10 @@ export default function Header() {
             Dashboard
           </Link>
           <Link to="/live-scores" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+          <Link to="/final-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <BarChart3 size={20} />
+            Final Stats
+          </Link>
             <span className="text-red-600 font-bold text-lg">🔴</span>
             Live Scores
           </Link>

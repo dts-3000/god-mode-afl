@@ -8,6 +8,7 @@ import Leaderboard from './pages/Leaderboard';
 import MatchStats from './pages/MatchStats';
 import LoadStats from './pages/LoadStats';
 import LiveScores from './pages/LiveScores';
+import FinalStats from './pages/FinalStats';
 import AdminPanel from './pages/AdminPanel';
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
             <Route path="/match-stats" element={<MatchStats />} />
             <Route path="/load-stats" element={<LoadStats />} />
             <Route path="/live-scores" element={<LiveScores />} />
+            <Route path="/final-stats" element={<FinalStats />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" />} />

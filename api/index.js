@@ -327,12 +327,19 @@ app.post('/api/scores/calculate', (req, res) => {
 });
 
 // ============================================
-// SQUIGGLE API INTEGRATION
+// SQUIGGLE API INTEGRATION (WITH PROPER HEADERS)
 // ============================================
+
+const SQUIGGLE_USER_AGENT = 'God Mode AFL Fantasy - contact: support@godmodeafl.com';
 
 app.get('/api/matches', async (req, res) => {
   try {
-    const response = await fetch('https://api.squiggle.com.au/?q=games;year=2026');
+    const response = await fetch('https://api.squiggle.com.au/?q=games;year=2026', {
+      headers: {
+        'User-Agent': SQUIGGLE_USER_AGENT,
+        'Accept': 'application/json'
+      }
+    });
     const data = await response.json();
     
     if (!data.games) {
@@ -361,7 +368,12 @@ app.get('/api/player-stats/:matchId/:teamId', async (req, res) => {
   try {
     const { matchId, teamId } = req.params;
     
-    const response = await fetch(`https://api.squiggle.com.au/?q=playerStats;gameId=${matchId};team=${teamId}`);
+    const response = await fetch(`https://api.squiggle.com.au/?q=playerStats;gameId=${matchId};team=${teamId}`, {
+      headers: {
+        'User-Agent': SQUIGGLE_USER_AGENT,
+        'Accept': 'application/json'
+      }
+    });
     const data = await response.json();
     
     if (!data.playerStats) {

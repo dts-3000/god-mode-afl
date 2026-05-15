@@ -22,15 +22,19 @@ export default function LoadStats() {
   const loadMatches = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/matches');
-      // Filter to only current/recent rounds
-      const recentMatches = (response.data.matches || [])
-        .filter(m => m.round >= 1)
-        .sort((a, b) => b.round - a.round);
-      setMatches(recentMatches);
+      // Fetch directly from Squiggle API (browser request, not backend)
+      const response = await fetch('https://api.squiggle.com.au/?q=games;year=2026');
+      const data = await response.json();
+      
+      if (data.games) {
+        const recentMatches = data.games
+          .filter(m => m.round >= 1)
+          .sort((a, b) => b.round - a.round);
+        setMatches(recentMatches);
+      }
     } catch (err) {
       console.error('Error loading matches:', err);
-      alert('Error loading matches. Check console.');
+      alert('Error loading matches from Squiggle. Check console.');
     } finally {
       setLoading(false);
     }
@@ -62,13 +66,14 @@ export default function LoadStats() {
 
       const teamId = firstPlayer.teamId;
 
-      // Fetch stats from Squiggle API
-      const response = await axios.get(`/api/player-stats/${selectedMatch.id}/${teamId}`);
-      const stats = response.data.stats || [];
+      // Fetch stats directly from Squiggle API (browser request)
+      const response = await fetch(`https://api.squiggle.com.au/?q=playerStats;gameId=${selectedMatch.id};team=${teamId}`);
+      const data = await response.json();
+      const stats = data.playerStats || [];
 
       // Match stats to squad players by jumper number
       const matchedStats = selectedSquad.players.map(squadPlayer => {
-        const apiStat = stats.find(s => s.jumperNumber === squadPlayer.jumperNumber);
+        const apiStat = stats.find(s => s.number === squadPlayer.jumperNumber);
         return {
           ...squadPlayer,
           matchStats: apiStat || {
@@ -91,7 +96,7 @@ export default function LoadStats() {
       alert('✅ Stats loaded from Squiggle API!');
     } catch (err) {
       console.error('Error loading stats:', err);
-      alert(`Error: ${err.response?.data?.error || err.message}`);
+      alert(`Error: ${err.message}`);
     } finally {
       setLoadingStats(false);
     }

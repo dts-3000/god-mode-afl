@@ -368,7 +368,7 @@ app.get('/api/player-stats/:matchId/:teamId', async (req, res) => {
       return res.json({ stats: [] });
     }
 
-    // Format player stats
+    // Format player stats - note: Squiggle uses 'number' for jumper number
     const stats = data.playerStats.map(ps => ({
       playerName: ps.player,
       jumperNumber: ps.number,

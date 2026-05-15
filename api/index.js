@@ -407,50 +407,46 @@ app.get('/api/player-stats/:matchId/:teamId', async (req, res) => {
 // EVENT API PROXY (For Live Scores)
 // ============================================
 
-// Store active SSE connections per user
-const eventConnections = new Map();
-
-app.get('/api/live-games', (req, res) => {
-  // Set up SSE response
+app.get('/api/live-games', async (req, res) => {
+  // Set up SSE response headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const clientId = Math.random().toString(36).substr(2, 9);
-  eventConnections.set(clientId, res);
-
-  // Connect to Squiggle Event API
-  const squiggleSSE = new EventSource('https://sse.squiggle.com.au/games', {
-    headers: {
-      'User-Agent': SQUIGGLE_USER_AGENT
-    }
-  });
-
-  const forwardEvent = (eventName) => {
-    squiggleSSE.addEventListener(eventName, (event) => {
-      // Forward the event to the client
-      res.write(`event: ${eventName}\n`);
-      res.write(`data: ${event.data}\n\n`);
+  try {
+    // Fetch from Squiggle Event API with proper User-Agent
+    const response = await fetch('https://sse.squiggle.com.au/games', {
+      headers: {
+        'User-Agent': SQUIGGLE_USER_AGENT,
+        'Accept': 'text/event-stream'
+      }
     });
-  };
 
-  // Forward all relevant events
-  forwardEvent('games');
-  forwardEvent('addGame');
-  forwardEvent('updateGame');
-  forwardEvent('removeGame');
+    if (!response.ok) {
+      res.status(response.status).json({ error: 'Failed to connect to Squiggle' });
+      return;
+    }
 
-  squiggleSSE.onerror = (err) => {
-    console.error('Squiggle SSE error:', err);
+    // Read the stream from Squiggle and forward to client
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      res.write(chunk);
+    }
+
     res.end();
-  };
-
-  // Handle client disconnect
-  req.on('close', () => {
-    squiggleSSE.close();
-    eventConnections.delete(clientId);
-  });
+  } catch (err) {
+    console.error('Error connecting to Squiggle Event API:', err);
+    res.write(`event: error\n`);
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  }
 });
 
 // ============================================

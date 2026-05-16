@@ -20,6 +20,10 @@ export default function Header() {
             <span className="text-red-600 font-bold text-lg">🔴</span>
             Live
           </Link>
+          <Link to="/afl-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <span className="text-yellow-500 font-bold text-lg">⚡</span>
+            AFL API
+          </Link>
           <Link to="/final-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
             Squiggle

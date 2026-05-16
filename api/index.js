@@ -460,6 +460,95 @@ app.get('/api/live-games', async (req, res) => {
 });
 
 // ============================================
+// AFL STATS SCRAPER (New!)
+// ============================================
+
+app.get('/api/afl-stats/:webMatchId', async (req, res) => {
+  const { webMatchId } = req.params;
+  
+  try {
+    // Step 1: Scrape AFL.com.au to get the API match ID (data-pid)
+    const htmlResponse = await fetch(`https://www.afl.com.au/afl/matches/${webMatchId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    
+    if (!htmlResponse.ok) {
+      return res.status(404).json({ error: 'Match not found on AFL.com.au' });
+    }
+    
+    const html = await htmlResponse.text();
+    
+    // Step 2: Extract data-pid from HTML
+    const pidMatch = html.match(/data-pid="(CD_M[^"]+)"/);
+    
+    if (!pidMatch) {
+      return res.status(404).json({ error: 'Could not find match data-pid in HTML' });
+    }
+    
+    const apiMatchId = pidMatch[1];
+    console.log(`✅ Mapped web ID ${webMatchId} → API ID ${apiMatchId}`);
+    
+    // Step 3: Call AFL API for player stats
+    const statsResponse = await fetch(`https://api.afl.com.au/cfs/afl/playerStats/match/${apiMatchId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!statsResponse.ok) {
+      return res.status(statsResponse.status).json({ 
+        error: 'AFL API returned error',
+        apiMatchId 
+      });
+    }
+    
+    const statsData = await statsResponse.json();
+    
+    // Step 4: Transform to our format
+    const players = [];
+    
+    if (statsData.players && Array.isArray(statsData.players)) {
+      statsData.players.forEach(player => {
+        players.push({
+          playerId: player.playerId,
+          playerName: `${player.player?.givenName || ''} ${player.player?.surname || ''}`.trim(),
+          jumperNumber: player.player?.jumperNumber || 0,
+          teamId: player.team?.teamId || 0,
+          teamName: player.team?.teamName || '',
+          handballs: player.stats?.handballs || 0,
+          kicks: player.stats?.kicks || 0,
+          marks: player.stats?.marks || 0,
+          tackles: player.stats?.tackles || 0,
+          goals: player.stats?.goals || 0,
+          behinds: player.stats?.behinds || 0,
+          hitouts: player.stats?.hitouts || 0,
+          clearances: player.stats?.clearances || 0,
+          inside50s: player.stats?.inside50s || 0,
+          goalAssists: player.stats?.goalAssists || 0
+        });
+      });
+    }
+    
+    res.json({
+      webMatchId,
+      apiMatchId,
+      playerCount: players.length,
+      players
+    });
+    
+  } catch (err) {
+    console.error('AFL Stats Scraper Error:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch AFL stats',
+      message: err.message 
+    });
+  }
+});
+
+// ============================================
 // CSV UPLOAD - CUSTOM MATCH STATS
 // ============================================
 

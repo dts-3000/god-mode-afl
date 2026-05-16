@@ -10,6 +10,7 @@ import LoadStats from './pages/LoadStats';
 import LiveScores from './pages/LiveScores';
 import FinalStats from './pages/FinalStats';
 import CSVStats from './pages/CSVStats';
+import AFLStats from './pages/AFLStats';
 import AdminPanel from './pages/AdminPanel';
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
             <Route path="/live-scores" element={<LiveScores />} />
             <Route path="/final-stats" element={<FinalStats />} />
             <Route path="/csv-stats" element={<CSVStats />} />
+            <Route path="/afl-stats" element={<AFLStats />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" />} />

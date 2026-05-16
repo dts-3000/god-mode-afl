@@ -3,13 +3,10 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = path.join(__dirname, '../data.json');
-const JWT_SECRET = process.env.JWT_SECRET || 'god-mode-afl-secret-key-2025';
 
 app.use(cors());
 app.use(express.json());
@@ -22,9 +19,7 @@ let DATABASE = {
   players: [],
   squads: [],
   scores: {},
-  admins: [],
-  liveMatches: [],
-  matchStats: {} // NEW: Store player stats by matchId
+  matchStats: {} // NEW: Store uploaded CSV stats
 };
 
 // Load data from file on startup
@@ -35,22 +30,12 @@ function loadData() {
       DATABASE = JSON.parse(data);
       console.log('✅ Data loaded from file');
     } else {
-      DATABASE.players = [];
-      DATABASE.squads = [];
-      DATABASE.scores = {};
-      DATABASE.matchStats = {};
+      DATABASE.players = initializeSamplePlayers();
       saveData();
-      console.log('✅ New database created');
+      console.log('✅ Sample data created');
     }
   } catch (err) {
-    console.error('❌ Error loading data:', err);
-    // Reset database if load fails
-    DATABASE = {
-      players: [],
-      squads: [],
-      scores: {},
-      matchStats: {}
-    };
+    console.error('Error loading data:', err);
   }
 }
 
@@ -143,33 +128,6 @@ app.get('/api/players/:aflId', (req, res) => {
   res.json(player);
 });
 
-// ============================================
-// ADMIN - PLAYER IMPORT (CSV)
-// ============================================
-
-app.post('/api/admin/import-players', (req, res) => {
-  const { players } = req.body;
-
-  if (!Array.isArray(players)) {
-    return res.status(400).json({ error: 'Players must be an array' });
-  }
-
-  // Add or replace players
-  for (const newPlayer of players) {
-    const existing = DATABASE.players.findIndex(p => p.aflId === newPlayer.aflId);
-    if (existing >= 0) {
-      // Update existing
-      DATABASE.players[existing] = { ...DATABASE.players[existing], ...newPlayer };
-    } else {
-      // Add new
-      DATABASE.players.push(newPlayer);
-    }
-  }
-
-  saveData();
-  res.json({ message: `Imported ${players.length} players`, count: DATABASE.players.length });
-});
-
 app.post('/api/players', (req, res) => {
   const { aflId, firstName, lastName, position, teamId, teamName } = req.body;
 
@@ -258,6 +216,9 @@ app.post('/api/squads', (req, res) => {
 
 app.put('/api/squads/:squadId/players', (req, res) => {
   const { players } = req.body;
+  const { squadId } = req.params;
+
+  console.log('Updating squad:', squadId, 'with', players?.length, 'players');
 
   if (!Array.isArray(players) || players.length !== 18) {
     return res.status(400).json({ error: 'Must have exactly 18 players (6 Def, 5 Mid, 1 Ruck, 6 Fwd)' });
@@ -268,8 +229,9 @@ app.put('/api/squads/:squadId/players', (req, res) => {
     return res.status(400).json({ error: 'Must have exactly 1 captain' });
   }
 
-  const squad = DATABASE.squads.find(s => s.id === req.params.squadId);
+  const squad = DATABASE.squads.find(s => s.id === squadId);
   if (!squad) {
+    console.error('Squad not found. Available squads:', DATABASE.squads.map(s => s.id));
     return res.status(404).json({ error: 'Squad not found' });
   }
 
@@ -366,209 +328,139 @@ app.post('/api/scores/calculate', (req, res) => {
 });
 
 // ============================================
-// ADMIN AUTHENTICATION
+// SQUIGGLE API INTEGRATION (WITH PROPER HEADERS)
 // ============================================
 
-// Hash password
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
+const SQUIGGLE_USER_AGENT = 'God Mode AFL Fantasy - contact: support@godmodeafl.com';
 
-// JWT Middleware
-function authMiddleware(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
+app.get('/api/matches', async (req, res) => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.adminId = decoded.adminId;
-    next();
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
-
-// Admin Login
-app.post('/api/admin/login', (req, res) => {
-  const { username, password } = req.body;
-  
-  const admin = DATABASE.admins.find(a => a.username === username);
-  if (!admin || admin.password !== hashPassword(password)) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-
-  const token = jwt.sign({ adminId: admin.id }, JWT_SECRET, { expiresIn: '7d' });
-  res.json({ token, admin: { id: admin.id, username: admin.username } });
-});
-
-// Create default admin (on first load)
-function initializeAdmin() {
-  if (DATABASE.admins.length === 0) {
-    DATABASE.admins.push({
-      id: crypto.randomUUID(),
-      username: 'admin',
-      password: hashPassword('admin123'),
-      createdAt: new Date()
+    const response = await fetch('https://api.squiggle.com.au/?q=games;year=2026', {
+      headers: {
+        'User-Agent': SQUIGGLE_USER_AGENT,
+        'Accept': 'application/json'
+      }
     });
-    saveData();
-    console.log('✅ Default admin created (username: admin, password: admin123)');
-  }
-}
-
-// ============================================
-// PLAYER MANAGEMENT (ADMIN)
-// ============================================
-
-// Add/Update Player
-app.post('/api/admin/players', authMiddleware, (req, res) => {
-  const { firstName, lastName, position, teamName, teamId, jumperNumber, seasonStats } = req.body;
-  
-  const newPlayer = {
-    id: crypto.randomUUID(),
-    aflId: `${teamId}-${jumperNumber}`,
-    firstName,
-    lastName,
-    position,
-    teamName,
-    teamId,
-    jumperNumber,
-    seasonStats: seasonStats || {},
-    createdAt: new Date()
-  };
-
-  DATABASE.players.push(newPlayer);
-  saveData();
-  res.json({ message: 'Player added', player: newPlayer });
-});
-
-// Update Player Stats
-app.put('/api/admin/players/:playerId/stats', authMiddleware, (req, res) => {
-  const { playerId } = req.params;
-  const stats = req.body;
-  
-  const player = DATABASE.players.find(p => p.id === playerId);
-  if (!player) {
-    return res.status(404).json({ error: 'Player not found' });
-  }
-
-  player.seasonStats = { ...player.seasonStats, ...stats };
-  saveData();
-  res.json({ message: 'Stats updated', player });
-});
-
-// Delete Player
-app.delete('/api/admin/players/:playerId', authMiddleware, (req, res) => {
-  const { playerId } = req.params;
-  DATABASE.players = DATABASE.players.filter(p => p.id !== playerId);
-  saveData();
-  res.json({ message: 'Player deleted' });
-});
-
-// ============================================
-// LIVE MATCH MANAGEMENT
-// ============================================
-
-// Start Live Match
-app.post('/api/admin/matches/start', authMiddleware, (req, res) => {
-  const { matchId, homeTeam, awayTeam, round } = req.body;
-  
-  const match = {
-    id: matchId || crypto.randomUUID(),
-    homeTeam,
-    awayTeam,
-    round,
-    status: 'LIVE',
-    startedAt: new Date(),
-    playerStats: {}
-  };
-
-  DATABASE.liveMatches.push(match);
-  saveData();
-  res.json({ message: 'Match started', match });
-});
-
-// Update Live Player Stats
-app.put('/api/admin/matches/:matchId/player-stats', authMiddleware, (req, res) => {
-  const { matchId } = req.params;
-  const { playerId, stats } = req.body;
-  
-  const match = DATABASE.liveMatches.find(m => m.id === matchId);
-  if (!match) {
-    return res.status(404).json({ error: 'Match not found' });
-  }
-
-  if (!match.playerStats[playerId]) {
-    match.playerStats[playerId] = {};
-  }
-
-  match.playerStats[playerId] = { ...match.playerStats[playerId], ...stats };
-  saveData();
-  res.json({ message: 'Player stats updated', stats: match.playerStats[playerId] });
-});
-
-// End Live Match
-app.post('/api/admin/matches/:matchId/end', authMiddleware, (req, res) => {
-  const { matchId } = req.params;
-  
-  const match = DATABASE.liveMatches.find(m => m.id === matchId);
-  if (!match) {
-    return res.status(404).json({ error: 'Match not found' });
-  }
-
-  match.status = 'FINISHED';
-  match.endedAt = new Date();
-
-  // Update player season stats with match stats
-  for (const [playerId, stats] of Object.entries(match.playerStats)) {
-    const player = DATABASE.players.find(p => p.id === playerId);
-    if (player) {
-      player.seasonStats = {
-        handballs: (player.seasonStats?.handballs || 0) + (stats.handballs || 0),
-        kicks: (player.seasonStats?.kicks || 0) + (stats.kicks || 0),
-        marks: (player.seasonStats?.marks || 0) + (stats.marks || 0),
-        tackles: (player.seasonStats?.tackles || 0) + (stats.tackles || 0),
-        goals: (player.seasonStats?.goals || 0) + (stats.goals || 0),
-        behinds: (player.seasonStats?.behinds || 0) + (stats.behinds || 0),
-        hitOuts: (player.seasonStats?.hitOuts || 0) + (stats.hitOuts || 0),
-        clearances: (player.seasonStats?.clearances || 0) + (stats.clearances || 0),
-        inside50s: (player.seasonStats?.inside50s || 0) + (stats.inside50s || 0),
-        goalAssists: (player.seasonStats?.goalAssists || 0) + (stats.goalAssists || 0)
-      };
+    const data = await response.json();
+    
+    if (!data.games) {
+      return res.json({ matches: [] });
     }
+
+    // Format matches for display
+    const matches = data.games.map(game => ({
+      id: game.id,
+      round: game.round,
+      homeTeam: game.hteam,
+      awayTeam: game.ateam,
+      date: game.date,
+      is_final: game.is_final,
+      status: game.is_final ? 'FINISHED' : 'LIVE'
+    }));
+
+    res.json({ matches });
+  } catch (err) {
+    console.error('Error fetching matches:', err);
+    res.status(500).json({ error: 'Failed to fetch matches' });
   }
-
-  saveData();
-  res.json({ message: 'Match ended', match });
 });
 
-// Get Live Matches
-app.get('/api/admin/matches', authMiddleware, (req, res) => {
-  res.json({ matches: DATABASE.liveMatches });
-});
+app.get('/api/player-stats/:matchId/:teamId', async (req, res) => {
+  try {
+    const { matchId, teamId } = req.params;
+    
+    console.log(`Fetching player stats for match ${matchId}, team ${teamId}`);
+    
+    const response = await fetch(`https://api.squiggle.com.au/?q=playerStats;gameId=${matchId};team=${teamId}`, {
+      headers: {
+        'User-Agent': SQUIGGLE_USER_AGENT,
+        'Accept': 'application/json'
+      }
+    });
 
-// ============================================
-// SQUAD MANAGEMENT (Team Name Updates)
-// ============================================
+    if (!response.ok) {
+      console.error(`Squiggle API error: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({ error: `Squiggle API returned ${response.status}`, stats: [] });
+    }
 
-// Update Squad Name
-app.put('/api/squads/:squadId/name', (req, res) => {
-  const { squadId } = req.params;
-  const { teamName } = req.body;
+    const data = await response.json();
+    
+    if (!data.playerStats) {
+      console.log('No player stats in response');
+      return res.json({ stats: [] });
+    }
 
-  const squad = DATABASE.squads.find(s => s.id === squadId);
-  if (!squad) {
-    return res.status(404).json({ error: 'Squad not found' });
+    // Format player stats - note: Squiggle uses 'number' for jumper number
+    const stats = data.playerStats.map(ps => ({
+      playerName: ps.player,
+      jumperNumber: ps.number,
+      handballs: ps.handballs || 0,
+      kicks: ps.kicks || 0,
+      marks: ps.marks || 0,
+      tackles: ps.tackles || 0,
+      goals: ps.goals || 0,
+      behinds: ps.behinds || 0,
+      hitOuts: ps.hitouts || 0,
+      clearances: ps.clearances || 0,
+      inside50s: ps.inside50s || 0,
+      goalAssists: ps.goalassists || 0
+    }));
+
+    res.json({ stats });
+  } catch (err) {
+    console.error('Error fetching player stats:', err);
+    res.status(500).json({ error: `Failed to fetch player stats: ${err.message}`, stats: [] });
   }
-
-  squad.teamName = teamName;
-  squad.updatedAt = new Date();
-  saveData();
-  res.json({ message: 'Squad name updated', squad });
 });
 
 // ============================================
-// MATCH STATS ENDPOINTS (Custom Data)
+// EVENT API PROXY (For Live Scores)
+// ============================================
+
+app.get('/api/live-games', async (req, res) => {
+  // Set up SSE response headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  try {
+    // Fetch from Squiggle Event API with proper User-Agent
+    const response = await fetch('https://sse.squiggle.com.au/games', {
+      headers: {
+        'User-Agent': SQUIGGLE_USER_AGENT,
+        'Accept': 'text/event-stream'
+      }
+    });
+
+    if (!response.ok) {
+      res.status(response.status).json({ error: 'Failed to connect to Squiggle' });
+      return;
+    }
+
+    // Read the stream from Squiggle and forward to client
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      res.write(chunk);
+    }
+
+    res.end();
+  } catch (err) {
+    console.error('Error connecting to Squiggle Event API:', err);
+    res.write(`event: error\n`);
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  }
+});
+
+// ============================================
+// CSV UPLOAD - CUSTOM MATCH STATS
 // ============================================
 
 app.get('/api/match-stats/:matchId', (req, res) => {
@@ -590,8 +482,7 @@ app.post('/api/match-stats/:matchId', (req, res) => {
   res.json({ message: 'Match stats saved', stats });
 });
 
-// CSV Upload for match stats
-app.post('/api/admin/upload-match-stats', express.json({ limit: '10mb' }), (req, res) => {
+app.post('/api/admin/upload-match-stats', (req, res) => {
   const { matchId, csvData } = req.body;
 
   if (!matchId || !csvData) {
@@ -599,7 +490,6 @@ app.post('/api/admin/upload-match-stats', express.json({ limit: '10mb' }), (req,
   }
 
   try {
-    // Parse CSV data (simple parser)
     const lines = csvData.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     
@@ -609,9 +499,8 @@ app.post('/api/admin/upload-match-stats', express.json({ limit: '10mb' }), (req,
       
       headers.forEach((header, idx) => {
         const value = values[idx];
-        // Convert numeric fields
-        if (['jumper number', 'jumpernumber', 'handballs', 'kicks', 'marks', 'tackles', 'goals', 'behinds', 'hitouts', 'clearances', 'inside50s', 'goalassists'].includes(header)) {
-          obj[header.replace(' ', '')] = parseInt(value) || 0;
+        if (['jumpernumber', 'handballs', 'kicks', 'marks', 'tackles', 'goals', 'behinds', 'hitouts', 'clearances', 'inside50s', 'goalassists'].includes(header.replace(/\s/g, ''))) {
+          obj[header.replace(/\s/g, '')] = parseInt(value) || 0;
         } else {
           obj[header] = value;
         }

@@ -11,7 +11,7 @@ export default function Header() {
           God Mode
         </Link>
 
-        <div className="flex items-center gap-8 text-sm">
+        <div className="flex items-center gap-6 text-sm">
           <Link to="/" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <Home size={20} />
             Dashboard
@@ -22,7 +22,11 @@ export default function Header() {
           </Link>
           <Link to="/final-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
-            Final Stats
+            Squiggle
+          </Link>
+          <Link to="/csv-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <BarChart3 size={20} />
+            CSV
           </Link>
           <Link to="/leaderboard" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />

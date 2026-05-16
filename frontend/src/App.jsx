@@ -5,6 +5,11 @@ import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import SquadBuilder from './pages/SquadBuilder';
 import Leaderboard from './pages/Leaderboard';
+import MatchStats from './pages/MatchStats';
+import LoadStats from './pages/LoadStats';
+import LiveScores from './pages/LiveScores';
+import FinalStats from './pages/FinalStats';
+import CSVStats from './pages/CSVStats';
 import AdminPanel from './pages/AdminPanel';
 
 function App() {
@@ -39,6 +44,11 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/squad/:squadId" element={<SquadBuilder />} />
+            <Route path="/match-stats" element={<MatchStats />} />
+            <Route path="/load-stats" element={<LoadStats />} />
+            <Route path="/live-scores" element={<LiveScores />} />
+            <Route path="/final-stats" element={<FinalStats />} />
+            <Route path="/csv-stats" element={<CSVStats />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<Navigate to="/" />} />

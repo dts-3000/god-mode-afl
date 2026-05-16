@@ -11,16 +11,24 @@ export default function Header() {
           God Mode
         </Link>
 
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-8 text-sm">
           <Link to="/" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <Home size={20} />
             Dashboard
+          </Link>
+          <Link to="/live-scores" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <span className="text-red-600 font-bold text-lg">🔴</span>
+            Live
+          </Link>
+          <Link to="/final-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <BarChart3 size={20} />
+            Final Stats
           </Link>
           <Link to="/leaderboard" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
             Leaderboard
           </Link>
-          <Link to="/admin/login" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+          <Link to="/admin" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <Settings size={20} />
             Admin
           </Link>

@@ -8,6 +8,7 @@ import Leaderboard from './pages/Leaderboard';
 import MatchStats from './pages/MatchStats';
 import LoadStats from './pages/LoadStats';
 import LiveScores from './pages/LiveScores';
+import LiveDFSStats from './pages/LiveDFSStats';
 import FinalStats from './pages/FinalStats';
 import CSVStats from './pages/CSVStats';
 import AFLStats from './pages/AFLStats';
@@ -48,6 +49,7 @@ function App() {
             <Route path="/match-stats" element={<MatchStats />} />
             <Route path="/load-stats" element={<LoadStats />} />
             <Route path="/live-scores" element={<LiveScores />} />
+            <Route path="/live-dfs" element={<LiveDFSStats />} />
             <Route path="/final-stats" element={<FinalStats />} />
             <Route path="/csv-stats" element={<CSVStats />} />
             <Route path="/afl-stats" element={<AFLStats />} />

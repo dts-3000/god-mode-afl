@@ -35,12 +35,22 @@ function loadData() {
       DATABASE = JSON.parse(data);
       console.log('✅ Data loaded from file');
     } else {
-      DATABASE.players = initializeSamplePlayers();
+      DATABASE.players = [];
+      DATABASE.squads = [];
+      DATABASE.scores = {};
+      DATABASE.matchStats = {};
       saveData();
-      console.log('✅ Sample data created');
+      console.log('✅ New database created');
     }
   } catch (err) {
-    console.error('Error loading data:', err);
+    console.error('❌ Error loading data:', err);
+    // Reset database if load fails
+    DATABASE = {
+      players: [],
+      squads: [],
+      scores: {},
+      matchStats: {}
+    };
   }
 }
 
@@ -639,7 +649,6 @@ app.get('/health', (req, res) => {
 // ============================================
 
 loadData();
-initializeAdmin();
 
 // Auto-save every 1 minute
 setInterval(saveData, 60 * 1000);

@@ -16,27 +16,11 @@ export default function Header() {
             <Home size={20} />
             Dashboard
           </Link>
-          <Link to="/live-scores" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
-          <Link to="/final-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
-            <BarChart3 size={20} />
-            Final Stats
-          </Link>
-            <span className="text-red-600 font-bold text-lg">🔴</span>
-            Live Scores
-          </Link>
-          <Link to="/load-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
-            <BarChart3 size={20} />
-            Load Stats
-          </Link>
-          <Link to="/match-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
-            <BarChart3 size={20} />
-            Match Stats
-          </Link>
           <Link to="/leaderboard" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
             Leaderboard
           </Link>
-          <Link to="/admin" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+          <Link to="/admin/login" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <Settings size={20} />
             Admin
           </Link>

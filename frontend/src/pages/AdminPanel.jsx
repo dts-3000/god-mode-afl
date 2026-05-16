@@ -1,210 +1,126 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Trash2, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload } from 'lucide-react';
 import axios from 'axios';
 
 export default function AdminPanel() {
-  const [players, setPlayers] = useState([]);
-  const [csvFile, setCsvFile] = useState(null);
+  const [activeTab, setActiveTab] = useState('csv');
+  const [csvData, setCsvData] = useState('');
+  const [matchId, setMatchId] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    loadPlayers();
-  }, []);
-
-  const loadPlayers = async () => {
-    try {
-      const response = await axios.get('/api/players');
-      setPlayers(response.data.players || []);
-    } catch (err) {
-      console.error('Error loading players:', err);
-    }
-  };
-
-  const handleCSVUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setLoading(true);
-    setMessage('');
-
-    try {
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
-      reader.onload = async (event) => {
-        const csv = event.target.result;
-        const lines = csv.split('\n');
-        const headers = lines[0].split('\t').map(h => h.trim().toLowerCase());
-
-        // Find column indices
-        const idIdx = headers.findIndex(h => h.includes('id'));
-        const jumperIdx = headers.findIndex(h => h.includes('jumper'));
-        const playerIdx = headers.findIndex(h => h === 'player');
-        const teamIdx = headers.findIndex(h => h === 'team');
-        const posIdx = headers.findIndex(h => h === 'position');
-
-        const newPlayers = [];
-        for (let i = 1; i < lines.length; i++) {
-          if (!lines[i].trim()) continue;
-
-          const cols = lines[i].split('\t').map(c => c.trim());
-          if (cols.length < 5) continue;
-
-          const [firstName, lastName] = cols[playerIdx]?.split(' ') || ['', ''];
-          const teamName = cols[teamIdx] || '';
-          const teamId = teamName.toLowerCase().replace(/\s+/g, '-');
-
-          const player = {
-            id: `player-${Math.random().toString(36).substr(2, 9)}`,
-            aflId: `${teamId}-${cols[jumperIdx]}`,
-            firstName: firstName || '',
-            lastName: lastName || '',
-            position: cols[posIdx] || '',
-            teamName: teamName,
-            teamId: teamId,
-            jumperNumber: parseInt(cols[jumperIdx]) || 0,
-            seasonStats: {}
-          };
-
-          newPlayers.push(player);
-        }
-
-        // Send to API
-        try {
-          await axios.post('/api/admin/import-players', { players: newPlayers });
-          setMessage(`✅ Successfully imported ${newPlayers.length} players!`);
-          loadPlayers();
-          setCsvFile(null);
-        } catch (err) {
-          setMessage(`❌ Error importing players: ${err.message}`);
-        }
+      reader.onload = (event) => {
+        setCsvData(event.target?.result || '');
+        setMessage('✅ CSV loaded! Click "Upload Stats" to process.');
       };
       reader.readAsText(file);
-    } catch (err) {
-      setMessage(`❌ Error processing file: ${err.message}`);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleDeletePlayer = async (playerId) => {
-    if (!window.confirm('Delete this player?')) return;
+  const handleUploadStats = async () => {
+    if (!matchId || !csvData) {
+      setMessage('❌ Enter Match ID and upload CSV');
+      return;
+    }
 
     setLoading(true);
     try {
-      // For now, just remove from state since we don't have delete endpoint
-      setPlayers(players.filter(p => p.id !== playerId));
-      setMessage('✅ Player deleted');
+      const response = await axios.post('/api/admin/upload-match-stats', { matchId, csvData });
+      setMessage(`✅ ${response.data.message}`);
+      setCsvData('');
+      setMatchId('');
     } catch (err) {
-      setMessage(`❌ Error: ${err.message}`);
+      setMessage(`❌ Error: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
-        <p className="text-gray-600">Manage players and import new data</p>
+    <div className="space-y-4 pb-20">
+      <h1 className="text-3xl font-bold">⚙️ Admin Panel</h1>
+
+      <div className="flex gap-2 border-b">
+        <button
+          onClick={() => setActiveTab('csv')}
+          className={`px-4 py-2 font-bold transition ${activeTab === 'csv' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+        >
+          📤 CSV Upload
+        </button>
+        <button
+          onClick={() => setActiveTab('info')}
+          className={`px-4 py-2 font-bold transition ${activeTab === 'info' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+        >
+          ℹ️ Guide
+        </button>
       </div>
 
-      {/* CSV Upload Section */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <Upload size={24} />
-          Import Players from CSV
-        </h2>
+      {activeTab === 'csv' && (
+        <div className="bg-white p-6 rounded-lg shadow space-y-4">
+          <h2 className="text-2xl font-bold">Upload Match Stats (CSV)</h2>
 
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-          <p className="text-sm text-blue-800 mb-2">
-            <strong>CSV Format Required (Tab-separated):</strong>
-          </p>
-          <p className="text-xs text-blue-700 font-mono">
-            ID	JumperNumber	Player	Team	Position
-          </p>
-          <p className="text-xs text-blue-600 mt-2">
-            Example: 1	15	John Doe	Adelaide	Midfielder
-          </p>
-        </div>
+          <div>
+            <label className="block text-sm font-bold mb-2">Match ID</label>
+            <input type="text" value={matchId} onChange={(e) => setMatchId(e.target.value)} placeholder="e.g., 8706 (from Live Scores)" className="w-full px-3 py-2 border rounded-lg" />
+          </div>
 
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700">
-            <Upload size={18} />
-            Choose CSV File
-            <input
-              type="file"
-              accept=".csv,.tsv,.txt"
-              onChange={handleCSVUpload}
-              disabled={loading}
-              className="hidden"
-            />
-          </label>
+          <div>
+            <label className="block text-sm font-bold mb-2">CSV File</label>
+            <div className="border-2 border-dashed rounded-lg p-6 text-center">
+              <input type="file" accept=".csv" onChange={handleFileUpload} className="w-full" />
+            </div>
+          </div>
 
-          {csvFile && (
-            <span className="text-sm text-gray-600">
-              Selected: <strong>{csvFile.name}</strong>
-            </span>
+          {csvData && (
+            <div>
+              <label className="block text-sm font-bold mb-2">Preview</label>
+              <textarea value={csvData} onChange={(e) => setCsvData(e.target.value)} rows={5} className="w-full px-3 py-2 border rounded-lg font-mono text-xs" />
+            </div>
           )}
+
+          <button onClick={handleUploadStats} disabled={loading || !matchId || !csvData} className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-white ${loading || !matchId || !csvData ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}>
+            <Upload size={20} />
+            {loading ? 'Processing...' : 'Upload Stats'}
+          </button>
+
+          {message && <div className={`p-3 rounded-lg text-sm font-bold ${message.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message}</div>}
         </div>
+      )}
 
-        {message && (
-          <div className={`mt-4 p-3 rounded text-sm ${
-            message.includes('✅')
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}>
-            {message}
-          </div>
-        )}
-      </div>
+      {activeTab === 'info' && (
+        <div className="bg-white p-6 rounded-lg shadow space-y-4">
+          <h2 className="text-2xl font-bold">CSV Format Guide</h2>
 
-      {/* Players List */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-2xl font-bold mb-4">
-          Players ({players.length})
-        </h2>
+          <div className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded text-sm font-mono overflow-x-auto">
+              <p className="font-bold mb-2">Required Columns:</p>
+              <pre>PlayerName,JumperNumber,Team,Handballs,Kicks,Marks,Tackles,Goals,Behinds,HitOuts,Clearances,Inside50s,GoalAssists</pre>
+            </div>
 
-        {players.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No players yet. Upload a CSV file to import players.</p>
+            <div className="bg-gray-50 p-4 rounded text-sm font-mono overflow-x-auto">
+              <p className="font-bold mb-2">Example:</p>
+              <pre>{`PlayerName,JumperNumber,Team,Handballs,Kicks,Marks,Tackles,Goals,Behinds,HitOuts,Clearances,Inside50s,GoalAssists
+Marcus Bontempelli,15,Western Bulldogs,22,14,8,6,2,0,0,3,4,1
+Dustin Martin,17,Richmond,18,12,5,7,1,1,0,2,3,0`}</pre>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded border border-blue-200">
+              <p className="font-bold text-blue-900 mb-2">📋 How It Works:</p>
+              <ol className="text-sm text-blue-900 space-y-1 list-decimal list-inside">
+                <li>Create CSV with player stats</li>
+                <li>Get Match ID from Live Scores (Round 10: Team A vs Team B = ID 8706)</li>
+                <li>Upload CSV here with that Match ID</li>
+                <li>Click "Final Stats" → Stats auto-load!</li>
+                <li>Save to squad → Points calculated</li>
+              </ol>
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 border-b">
-                <tr>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Position</th>
-                  <th className="px-4 py-2 text-left">Team</th>
-                  <th className="px-4 py-2 text-left">Jumper #</th>
-                  <th className="px-4 py-2 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {players.map(player => (
-                  <tr key={player.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2">
-                      {player.firstName} {player.lastName}
-                    </td>
-                    <td className="px-4 py-2">{player.position}</td>
-                    <td className="px-4 py-2">{player.teamName}</td>
-                    <td className="px-4 py-2">#{player.jumperNumber}</td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => handleDeletePlayer(player.id)}
-                        disabled={loading}
-                        className="text-red-600 hover:text-red-800 disabled:text-gray-400"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

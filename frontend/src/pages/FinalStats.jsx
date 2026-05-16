@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Download, Loader, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Loader, CheckCircle } from 'lucide-react';
 
 export default function FinalStats() {
   const navigate = useNavigate();
@@ -68,22 +68,32 @@ export default function FinalStats() {
       alert('Select both a game and squad');
       return;
     }
+
     setLoadingStats(true);
     try {
-      const firstPlayer = selectedSquad.players?.[0];
-      if (!firstPlayer) {
-        alert('Squad has no players');
+      const response = await axios.get(`/api/match-stats/${selectedGame.id}`);
+      const stats = response.data.stats || [];
+
+      if (stats.length === 0) {
+        alert('⚠️ No stats uploaded for this match yet.\n\nUpload CSV in Admin panel first!');
+        setLoadingStats(false);
         return;
       }
-      const teamId = firstPlayer.teamId;
-      const response = await axios.get(`/api/player-stats/${selectedGame.id}/${teamId}`);
-      const stats = response.data.stats || [];
+
       const matchedStats = selectedSquad.players.map(squadPlayer => {
-        const apiStat = stats.find(s => s.jumperNumber === squadPlayer.jumperNumber);
-        return { ...squadPlayer, matchStats: apiStat || { handballs: 0, kicks: 0, marks: 0, tackles: 0, goals: 0, behinds: 0, hitOuts: 0, clearances: 0, inside50s: 0, goalAssists: 0 }, playerScore: calculatePoints(apiStat, squadPlayer.isCaptain) };
+        const apiStat = stats.find(s => {
+          const statNumber = s.jumpernumber || s.number;
+          return statNumber === squadPlayer.jumperNumber || statNumber === parseInt(squadPlayer.jumperNumber);
+        });
+        return {
+          ...squadPlayer,
+          matchStats: apiStat || { handballs: 0, kicks: 0, marks: 0, tackles: 0, goals: 0, behinds: 0, hitOuts: 0, clearances: 0, inside50s: 0, goalAssists: 0 },
+          playerScore: calculatePoints(apiStat, squadPlayer.isCaptain)
+        };
       });
+
       setPlayerStats(matchedStats);
-      alert('✅ Final stats loaded!');
+      alert('✅ Stats loaded!');
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -98,7 +108,7 @@ export default function FinalStats() {
     }
     try {
       await axios.put(`/api/squads/${selectedSquad.id}/players`, { players: playerStats });
-      alert('✅ Final stats saved!');
+      alert('✅ Stats saved!');
       navigate('/');
     } catch (err) {
       alert(`Error: ${err.message}`);
@@ -113,23 +123,23 @@ export default function FinalStats() {
         <ArrowLeft size={16} /> Back
       </button>
       <div className="bg-white p-4 rounded-lg shadow">
-        <h1 className="text-2xl font-bold mb-4">📊 Final Stats</h1>
+        <h1 className="text-2xl font-bold mb-4">📊 Load Final Stats</h1>
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <h3 className="font-bold mb-2">1. Select Finished Game</h3>
-            {loading ? <div className="flex items-center gap-2 text-gray-600"><Loader size={18} className="animate-spin" /> Loading...</div> : games.length === 0 ? <div className="bg-yellow-50 p-3 rounded text-yellow-800 text-sm">No finished games yet.</div> : <div className="space-y-1 max-h-40 overflow-y-auto border rounded p-2">{games.map(game => (<button key={game.id} onClick={() => setSelectedGame(game)} className={`w-full text-left p-2 rounded transition ${selectedGame?.id === game.id ? 'bg-blue-100 border-2 border-blue-600' : 'bg-gray-50 border border-gray-200'}`}><p className="font-semibold text-sm">Round {game.round}: {getTeamName(game.homeTeam)} vs {getTeamName(game.awayTeam)}</p></button>))}</div>}
+            <h3 className="font-bold mb-2">1. Finished Game</h3>
+            {loading ? <div className="text-gray-600 text-sm">Loading...</div> : games.length === 0 ? <div className="bg-yellow-50 p-3 rounded text-yellow-800 text-sm">No finished games</div> : <div className="space-y-1 max-h-40 overflow-y-auto border rounded p-2">{games.map(game => (<button key={game.id} onClick={() => setSelectedGame(game)} className={`w-full text-left p-2 rounded transition text-sm ${selectedGame?.id === game.id ? 'bg-blue-100 border-2 border-blue-600' : 'bg-gray-50'}`}><p className="font-semibold">Round {game.round}: {getTeamName(game.homeTeam)} vs {getTeamName(game.awayTeam)}</p></button>))}</div>}
           </div>
           <div>
-            <h3 className="font-bold mb-2">2. Select Your Squad</h3>
-            <div className="space-y-1 max-h-40 overflow-y-auto border rounded p-2">{squads.map(squad => (<button key={squad.id} onClick={() => setSelectedSquad(squad)} className={`w-full text-left p-2 rounded transition ${selectedSquad?.id === squad.id ? 'bg-blue-100 border-2 border-blue-600' : 'bg-gray-50 border border-gray-200'}`}><p className="font-semibold text-sm">{squad.teamName}</p></button>))}</div>
+            <h3 className="font-bold mb-2">2. Your Squad</h3>
+            <div className="space-y-1 max-h-40 overflow-y-auto border rounded p-2">{squads.map(squad => (<button key={squad.id} onClick={() => setSelectedSquad(squad)} className={`w-full text-left p-2 rounded transition text-sm ${selectedSquad?.id === squad.id ? 'bg-blue-100 border-2 border-blue-600' : 'bg-gray-50'}`}><p className="font-semibold">{squad.teamName}</p></button>))}</div>
           </div>
-          <button onClick={handleLoadStats} disabled={!selectedGame || !selectedSquad || loadingStats} className={`flex items-center justify-center gap-2 py-2 rounded font-bold transition ${selectedGame && selectedSquad && !loadingStats ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-400 text-white cursor-not-allowed'}`}>{loadingStats ? <>Loading...</> : <>Load Final Stats</>}</button>
+          <button onClick={handleLoadStats} disabled={!selectedGame || !selectedSquad || loadingStats} className={`py-2 rounded font-bold text-white transition ${selectedGame && selectedSquad && !loadingStats ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}>{loadingStats ? 'Loading...' : 'Load Stats'}</button>
           {playerStats.length > 0 && (
             <div>
-              <div className="flex items-center justify-between mb-3 p-3 bg-green-50 rounded border border-green-200">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded border border-green-200 mb-3">
                 <p className="text-3xl font-bold text-green-600">{totalPoints}</p>
               </div>
-              <button onClick={handleSaveStats} className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold">✅ Save Stats</button>
+              <button onClick={handleSaveStats} className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold">✅ Save Stats to Squad</button>
             </div>
           )}
         </div>

@@ -42,9 +42,16 @@ export default function AFLStats() {
     }
   };
 
-  const getTeamName = (teamId) => {
+  const getTeamName = (teamNameOrId) => {
+    // Squiggle returns team names directly (e.g., "Richmond", "Carlton")
+    // If it's already a string name, return it
+    if (typeof teamNameOrId === 'string') {
+      return teamNameOrId;
+    }
+    
+    // Otherwise map ID to name (fallback)
     const teams = { 1: 'Adelaide', 2: 'Brisbane', 3: 'Carlton', 4: 'Collingwood', 5: 'Essendon', 6: 'Fremantle', 7: 'Geelong', 8: 'Gold Coast', 9: 'GWS', 10: 'Hawthorn', 11: 'Melbourne', 12: 'North Melbourne', 13: 'Port Adelaide', 14: 'Richmond', 15: 'St Kilda', 16: 'Sydney', 17: 'West Coast', 18: 'Western Bulldogs' };
-    return teams[teamId] || `Team ${teamId}`;
+    return teams[teamNameOrId] || `Team ${teamNameOrId}`;
   };
 
   const calculatePoints = (stats, isCaptain) => {
@@ -71,18 +78,18 @@ export default function AFLStats() {
     }
 
     setLoadingStats(true);
-    setApiStatus('🔍 Scraping AFL.com.au...');
+    setApiStatus('🔍 Fetching from DFS Australia...');
     
     try {
       // Call our AFL scraper API
       const response = await axios.get(`/api/afl-stats/${selectedGame.id}`);
       
-      setApiStatus(`✅ Found ${response.data.playerCount} players from AFL API`);
+      setApiStatus(`✅ Found ${response.data.playerCount} players from DFS Australia`);
       
       const aflPlayers = response.data.players || [];
 
       if (aflPlayers.length === 0) {
-        alert('⚠️ No stats found from AFL.com.au for this match.');
+        alert('⚠️ No stats found from DFS Australia for this match.\n\nMake sure the game has started and stats are available.');
         setLoadingStats(false);
         return;
       }
@@ -109,7 +116,7 @@ export default function AFLStats() {
       setPlayerStats(matchedStats);
       
       const matchedCount = matchedStats.filter(p => p.aflMatched).length;
-      alert(`✅ Loaded stats from AFL.com.au!\n\nMatched ${matchedCount}/${selectedSquad.players.length} players`);
+      alert(`✅ Loaded stats from DFS Australia!\n\nMatched ${matchedCount}/${selectedSquad.players.length} players`);
       
     } catch (err) {
       console.error('Error loading AFL stats:', err);
@@ -146,13 +153,13 @@ export default function AFLStats() {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center gap-2 mb-4">
           <Zap className="text-yellow-500" size={24} />
-          <h1 className="text-2xl font-bold">⚡ AFL.com.au Stats (LIVE API)</h1>
+          <h1 className="text-2xl font-bold">⚡ DFS Australia Stats (LIVE)</h1>
         </div>
 
         <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-4">
           <p className="text-sm text-blue-900">
-            <strong>🚀 Direct from AFL.com.au!</strong> This scrapes the official AFL website 
-            and fetches real player stats via their API. No manual uploads needed!
+            <strong>🚀 Direct from DFS Australia!</strong> This fetches live player stats 
+            from the public DFS Australia JSON feed. Updated every 30 seconds during games!
           </p>
         </div>
 
@@ -217,12 +224,12 @@ export default function AFLStats() {
             {loadingStats ? (
               <>
                 <Loader className="animate-spin" size={20} />
-                Fetching from AFL.com.au...
+                Fetching from DFS Australia...
               </>
             ) : (
               <>
                 <Zap size={20} />
-                Load AFL Stats (Auto)
+                Load DFS Stats (Auto)
               </>
             )}
           </button>

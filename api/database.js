@@ -77,8 +77,8 @@ export const db = {
       player_name: player.playerName,
       jumper_number: player.jumperNumber,
       position: player.position || '',
-      team_id: player.teamId || 0,
-      team_name: player.teamName || '',
+      team_id: typeof player.teamId === 'number' ? player.teamId : null,
+      team_name: player.teamName || player.team || '',
       is_captain: player.isCaptain || false,
       player_order: index
     }));

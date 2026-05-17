@@ -7,6 +7,7 @@ import SquadBuilder from './pages/SquadBuilder';
 import Leaderboard from './pages/Leaderboard';
 import MatchStats from './pages/MatchStats';
 import LiveScores from './pages/LiveScores';
+import PasteStats from './pages/PasteStats';
 import CSVStats from './pages/CSVStats';
 import AdminPanel from './pages/AdminPanel';
 
@@ -44,6 +45,7 @@ function App() {
             <Route path="/squad/:squadId" element={<SquadBuilder />} />
             <Route path="/match-stats" element={<MatchStats />} />
             <Route path="/live-scores" element={<LiveScores />} />
+            <Route path="/paste-stats" element={<PasteStats />} />
             <Route path="/csv-stats" element={<CSVStats />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<AdminPanel />} />

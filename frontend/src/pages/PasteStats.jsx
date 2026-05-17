@@ -8,16 +8,13 @@ export default function PasteStats() {
   const userId = localStorage.getItem('userId');
   const [pastedData, setPastedData] = useState('');
   const [squads, setSquads] = useState([]);
-  const [matches, setMatches] = useState([]);
   const [selectedSquad, setSelectedSquad] = useState(null);
-  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [selectedMatch, setSelectedMatch] = useState({ round: 0, homeTeam: '', awayTeam: '' });
   const [parsedPlayers, setParsedPlayers] = useState([]);
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadSquads();
-    loadMatches();
   }, []);
 
   const loadSquads = async () => {
@@ -27,26 +24,6 @@ export default function PasteStats() {
     } catch (err) {
       console.error('Error loading squads:', err);
     }
-  };
-
-  const loadMatches = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get('/api/matches');
-      // Get finished games only
-      const finishedGames = (response.data.matches || []).filter(m => m.is_final);
-      setMatches(finishedGames.sort((a, b) => b.round - a.round));
-    } catch (err) {
-      console.error('Error loading matches:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getTeamName = (teamNameOrId) => {
-    if (typeof teamNameOrId === 'string') return teamNameOrId;
-    const teams = { 1: 'Adelaide', 2: 'Brisbane', 3: 'Carlton', 4: 'Collingwood', 5: 'Essendon', 6: 'Fremantle', 7: 'Geelong', 8: 'Gold Coast', 9: 'GWS', 10: 'Hawthorn', 11: 'Melbourne', 12: 'North Melbourne', 13: 'Port Adelaide', 14: 'Richmond', 15: 'St Kilda', 16: 'Sydney', 17: 'West Coast', 18: 'Western Bulldogs' };
-    return teams[teamNameOrId] || `Team ${teamNameOrId}`;
   };
 
   const calculateFantasyPoints = (stats) => {
@@ -138,8 +115,8 @@ export default function PasteStats() {
       return;
     }
 
-    if (!selectedMatch) {
-      setMessage('❌ Select a match first!');
+    if (!selectedMatch?.round || !selectedMatch?.homeTeam || !selectedMatch?.awayTeam) {
+      setMessage('❌ Enter round # and both teams!');
       return;
     }
 
@@ -149,8 +126,11 @@ export default function PasteStats() {
     }
 
     try {
+      // Generate match ID from entered data (e.g., "R10_Richmond_Geelong")
+      const matchId = `R${selectedMatch.round}_${selectedMatch.homeTeam.replace(/\s/g, '')}_${selectedMatch.awayTeam.replace(/\s/g, '')}`;
+
       // Save stats to match stats storage
-      await axios.post(`/api/match-stats/${selectedMatch.id}`, {
+      await axios.post(`/api/match-stats/${matchId}`, {
         stats: parsedPlayers.map(p => ({
           jumperNumber: p.jumperNumber,
           playerName: p.playerName,
@@ -204,7 +184,7 @@ export default function PasteStats() {
       await axios.put(`/api/squads/${selectedSquad.id}/players`, { players: updatedPlayers });
       
       const matchedCount = updatedPlayers.filter(p => p.matchStats).length;
-      alert(`✅ Saved stats!\n\n• Stored to Match ID ${selectedMatch.id}\n• Matched ${matchedCount}/18 players to squad`);
+      alert(`✅ Saved stats!\n\n• Round ${selectedMatch.round}: ${selectedMatch.homeTeam} vs ${selectedMatch.awayTeam}\n• Match ID: ${matchId}\n• Matched ${matchedCount}/18 players to squad`);
       navigate('/');
     } catch (err) {
       setMessage(`❌ Error: ${err.message}`);
@@ -234,34 +214,47 @@ export default function PasteStats() {
 
         {/* Paste Area */}
         <div className="space-y-4">
-          {/* Match Selection */}
-          <div>
-            <label className="block text-sm font-bold mb-2">1. Select Match:</label>
-            {loading ? (
-              <div className="text-sm text-gray-600">Loading matches...</div>
-            ) : matches.length === 0 ? (
-              <div className="bg-yellow-50 p-3 rounded text-yellow-800 text-sm">No finished matches found</div>
-            ) : (
-              <div className="space-y-1 max-h-48 overflow-y-auto border rounded p-2">
-                {matches.map(match => (
-                  <button
-                    key={match.id}
-                    onClick={() => setSelectedMatch(match)}
-                    className={`w-full text-left p-2 rounded text-sm transition ${
-                      selectedMatch?.id === match.id
-                        ? 'bg-purple-100 border-2 border-purple-600'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                  >
-                    <p className="font-semibold">
-                      Round {match.round}: {getTeamName(match.homeTeam)} vs {getTeamName(match.awayTeam)}
-                    </p>
-                    <p className="text-xs text-gray-600">Match ID: {match.id}</p>
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* Manual Match Entry */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-bold mb-2">1a. Round #:</label>
+              <input
+                type="number"
+                placeholder="e.g., 10"
+                value={selectedMatch?.round || ''}
+                onChange={(e) => setSelectedMatch({ ...selectedMatch, round: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">1b. Home Team:</label>
+              <input
+                type="text"
+                placeholder="e.g., Richmond"
+                value={selectedMatch?.homeTeam || ''}
+                onChange={(e) => setSelectedMatch({ ...selectedMatch, homeTeam: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">1c. Away Team:</label>
+              <input
+                type="text"
+                placeholder="e.g., Geelong"
+                value={selectedMatch?.awayTeam || ''}
+                onChange={(e) => setSelectedMatch({ ...selectedMatch, awayTeam: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              />
+            </div>
           </div>
+
+          {selectedMatch?.round && selectedMatch?.homeTeam && selectedMatch?.awayTeam && (
+            <div className="bg-purple-100 p-3 rounded border border-purple-300">
+              <p className="font-bold text-purple-900">
+                Match: Round {selectedMatch.round} - {selectedMatch.homeTeam} vs {selectedMatch.awayTeam}
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-bold mb-2">2. Paste DFS Stats Here:</label>
@@ -356,9 +349,9 @@ export default function PasteStats() {
 
               <button
                 onClick={handleSaveToSquad}
-                disabled={!selectedSquad || !selectedMatch}
+                disabled={!selectedSquad || !selectedMatch?.round || !selectedMatch?.homeTeam || !selectedMatch?.awayTeam}
                 className={`w-full px-4 py-3 rounded font-bold text-white flex items-center justify-center gap-2 ${
-                  selectedSquad && selectedMatch
+                  selectedSquad && selectedMatch?.round && selectedMatch?.homeTeam && selectedMatch?.awayTeam
                     ? 'bg-green-600 hover:bg-green-700'
                     : 'bg-gray-400 cursor-not-allowed'
                 }`}

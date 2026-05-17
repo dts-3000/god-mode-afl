@@ -3,6 +3,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { db } from './database.js';
 
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -178,68 +179,136 @@ app.delete('/api/players/:aflId', (req, res) => {
 // SQUADS ENDPOINTS
 // ============================================
 
-app.get('/api/squads', (req, res) => {
-  const { userId } = req.query;
-  const squads = userId
-    ? DATABASE.squads.filter(s => s.userId === userId)
-    : DATABASE.squads;
-  res.json(squads);
+app.get('/api/squads', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const squads = await db.getSquadsByUser(userId);
+    
+    // Get players for each squad
+    const squadsWithPlayers = await Promise.all(
+      squads.map(async (squad) => {
+        const players = await db.getSquadPlayers(squad.id);
+        return {
+          id: squad.id,
+          userId: squad.user_id,
+          teamName: squad.team_name,
+          season: squad.season,
+          players: players.map(p => ({
+            playerId: p.player_id,
+            playerName: p.player_name,
+            jumperNumber: p.jumper_number,
+            position: p.position,
+            teamId: p.team_id,
+            teamName: p.team_name,
+            isCaptain: p.is_captain,
+            order: p.player_order
+          })),
+          createdAt: squad.created_at,
+          updatedAt: squad.updated_at
+        };
+      })
+    );
+    
+    res.json(squadsWithPlayers);
+  } catch (err) {
+    console.error('Error getting squads:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/squads/:squadId', (req, res) => {
-  const squad = DATABASE.squads.find(s => s.id === req.params.squadId);
-  if (!squad) {
-    return res.status(404).json({ error: 'Squad not found' });
+app.get('/api/squads/:squadId', async (req, res) => {
+  try {
+    const squad = await db.getSquad(req.params.squadId);
+    if (!squad) {
+      return res.status(404).json({ error: 'Squad not found' });
+    }
+    
+    const players = await db.getSquadPlayers(squad.id);
+    
+    res.json({
+      id: squad.id,
+      userId: squad.user_id,
+      teamName: squad.team_name,
+      season: squad.season,
+      players: players.map(p => ({
+        playerId: p.player_id,
+        playerName: p.player_name,
+        jumperNumber: p.jumper_number,
+        position: p.position,
+        teamId: p.team_id,
+        teamName: p.team_name,
+        isCaptain: p.is_captain,
+        order: p.player_order
+      })),
+      createdAt: squad.created_at,
+      updatedAt: squad.updated_at
+    });
+  } catch (err) {
+    console.error('Error getting squad:', err);
+    res.status(500).json({ error: err.message });
   }
-  res.json(squad);
 });
 
-app.post('/api/squads', (req, res) => {
-  const { userId, teamName, season } = req.body;
-
-  const squad = {
-    id: Date.now().toString(),
-    userId,
-    teamName,
-    season: season || new Date().getFullYear(),
-    players: [],
-    currentRound: 1,
-    seasonTotal: 0,
-    roundTotal: 0,
-    createdAt: new Date()
-  };
-
-  DATABASE.squads.push(squad);
-  saveData();
-  res.status(201).json(squad);
+app.post('/api/squads', async (req, res) => {
+  try {
+    const { userId, teamName, season } = req.body;
+    
+    const squad = await db.createSquad(
+      userId,
+      teamName,
+      season || new Date().getFullYear()
+    );
+    
+    res.status(201).json({
+      id: squad.id,
+      userId: squad.user_id,
+      teamName: squad.team_name,
+      season: squad.season,
+      players: [],
+      createdAt: squad.created_at
+    });
+  } catch (err) {
+    console.error('Error creating squad:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.put('/api/squads/:squadId/players', (req, res) => {
-  const { players } = req.body;
-  const { squadId } = req.params;
+app.put('/api/squads/:squadId/players', async (req, res) => {
+  try {
+    const { players } = req.body;
+    const { squadId } = req.params;
 
-  console.log('Updating squad:', squadId, 'with', players?.length, 'players');
+    console.log('Updating squad:', squadId, 'with', players?.length, 'players');
 
-  if (!Array.isArray(players) || players.length !== 18) {
-    return res.status(400).json({ error: 'Must have exactly 18 players (6 Def, 5 Mid, 1 Ruck, 6 Fwd)' });
+    if (!Array.isArray(players) || players.length !== 18) {
+      return res.status(400).json({ error: 'Must have exactly 18 players (6 Def, 5 Mid, 1 Ruck, 6 Fwd)' });
+    }
+
+    const captainCount = players.filter(p => p.isCaptain).length;
+    if (captainCount !== 1) {
+      return res.status(400).json({ error: 'Must have exactly 1 captain' });
+    }
+
+    // Check squad exists
+    const squad = await db.getSquad(squadId);
+    if (!squad) {
+      return res.status(404).json({ error: 'Squad not found' });
+    }
+
+    // Save players to database
+    await db.addPlayersToSquad(squadId, players);
+    
+    // If there are match stats, save those too
+    const playersWithStats = players.filter(p => p.matchStats);
+    if (playersWithStats.length > 0 && playersWithStats[0].matchId) {
+      await db.saveSquadPlayerStats(squadId, playersWithStats[0].matchId, players);
+    }
+
+    res.json({ message: 'Squad updated', squad: { id: squadId, players } });
+  } catch (err) {
+    console.error('Error updating squad players:', err);
+    res.status(500).json({ error: err.message });
   }
-
-  const captainCount = players.filter(p => p.isCaptain).length;
-  if (captainCount !== 1) {
-    return res.status(400).json({ error: 'Must have exactly 1 captain' });
-  }
-
-  const squad = DATABASE.squads.find(s => s.id === squadId);
-  if (!squad) {
-    console.error('Squad not found. Available squads:', DATABASE.squads.map(s => s.id));
-    return res.status(404).json({ error: 'Squad not found' });
-  }
-
-  squad.players = players;
-  squad.updatedAt = new Date();
-  saveData();
-
-  res.json({ message: 'Squad updated', squad });
 });
 
 app.put('/api/squads/:squadId/captain', (req, res) => {
@@ -463,23 +532,44 @@ app.get('/api/live-games', async (req, res) => {
 // CSV UPLOAD - CUSTOM MATCH STATS
 // ============================================
 
-app.get('/api/match-stats/:matchId', (req, res) => {
-  const { matchId } = req.params;
-  const stats = DATABASE.matchStats[matchId] || [];
-  res.json({ stats });
+app.get('/api/match-stats/:matchId', async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const matchData = await db.getMatchStats(matchId);
+    
+    if (!matchData) {
+      return res.json({ stats: [] });
+    }
+    
+    res.json({ stats: matchData.players || [] });
+  } catch (err) {
+    console.error('Error getting match stats:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/match-stats/:matchId', (req, res) => {
-  const { matchId } = req.params;
-  const { stats } = req.body;
+app.post('/api/match-stats/:matchId', async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { stats } = req.body;
 
-  if (!Array.isArray(stats)) {
-    return res.status(400).json({ error: 'Stats must be an array' });
+    if (!Array.isArray(stats)) {
+      return res.status(400).json({ error: 'Stats must be an array' });
+    }
+
+    // Extract round and teams from matchId (format: R10_Richmond_Geelong)
+    const parts = matchId.split('_');
+    const round = parts[0] ? parseInt(parts[0].replace('R', '')) : 0;
+    const homeTeam = parts[1] || '';
+    const awayTeam = parts[2] || '';
+
+    await db.saveMatchStats(matchId, round, homeTeam, awayTeam, stats);
+    
+    res.json({ message: 'Match stats saved', stats });
+  } catch (err) {
+    console.error('Error saving match stats:', err);
+    res.status(500).json({ error: err.message });
   }
-
-  DATABASE.matchStats[matchId] = stats;
-  saveData();
-  res.json({ message: 'Match stats saved', stats });
 });
 
 app.post('/api/admin/upload-match-stats', (req, res) => {

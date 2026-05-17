@@ -20,17 +20,13 @@ export default function Header() {
             <span className="text-red-600 font-bold text-lg">🔴</span>
             Live Scores
           </Link>
-          <Link to="/live-dfs" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
-            <span className="text-green-600 font-bold text-lg">📊</span>
-            Live DFS
-          </Link>
-          <Link to="/afl-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
-            <span className="text-yellow-500 font-bold text-lg">⚡</span>
-            AFL API
+          <Link to="/match-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+            <BarChart3 size={20} />
+            Enter Stats
           </Link>
           <Link to="/csv-stats" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
-            CSV
+            CSV Stats
           </Link>
           <Link to="/leaderboard" className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
             <BarChart3 size={20} />
